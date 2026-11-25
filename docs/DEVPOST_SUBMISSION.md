@@ -78,7 +78,7 @@ Local deliverables ready for YouTube Studio upload (in gitignored `demo/` folder
 - [x] Run locked Linux CI (`npm ci && npm test && npm run build`) and deploy `dist/` automatically to **GitHub Pages** (`https://pakorn269.github.io/night-shift-help-desk/`), verified end-to-end in live browser with HTTP `200` on all sprites and `0` console errors.
 - [x] Record `<3 min` subtitled HD demo video (`2m 07s`, Google Cloud Chirp 3 HD per-cue synced voiceover), synced `.srt` captions, and `1280×720` thumbnail locally in `demo/`.
 - [x] Upload demo video to YouTube as **Public** — live at https://youtu.be/iKEAG_p1iWA.
-- [ ] Submit repo URL, live app URL, YouTube video URL, and Costume Contest write-up on [kiroween.devpost.com](https://kiroween.devpost.com/).
+- [x] Submit repo URL, live app URL, YouTube video URL, and Costume Contest write-up on Devpost — live at https://devpost.com/software/night-shift-help-desk.
 
 ---
 
