@@ -1,24 +1,23 @@
 """
 Night Shift Help Desk — Automated YouTube Demo Video Producer (< 3 min, 1280x720 H.264 MP4)
 
-Supports studio-grade neural TTS providers (checked in priority order via env or gitignored .env.local):
-  1. ElevenLabs       (ELEVENLABS_API_KEY, optional ELEVENLABS_VOICE_ID) — most expressive horror/storytelling voice
-  2. Google Cloud TTS (GOOGLE_TTS_API_KEY, Chirp 3 HD voice)            — crisp, lively broadcast narration
-  3. Edge Neural TTS  (edge-tts using OS truststore if available)       — zero-key neural fallback
-  4. Windows SAPI                                                        — offline last-resort fallback
-
-Also trims the leading Playwright `about:blank` load frames automatically so there is ZERO
-white flash at the transition from Title Card into live gameplay, and burns 43 crisp Phosphor-Noir
-chunked subtitles directly into the final MP4 alongside the matching .srt file.
+Guarantees 0.00s subtitle-to-voice sync and exact video-to-audio alignment:
+  1. Synthesizes every subtitle cue individually with Google Cloud TTS (Chirp 3: HD),
+     ElevenLabs, or Edge/SAPI fallback, trimming leading/trailing silence so each cue's
+     exact audio duration drives its exact subtitle start/end timestamp (zero estimation drift!).
+  2. Records live Playwright Chromium captures directly on https://pakorn269.github.io/night-shift-help-desk/
+     using pixel-variance UI paint detection (`detect_first_painted_timestamp`) so zero blank
+     white/black load frames ever appear, and logs exact in-recording scene timestamps.
+  3. Concatenates all scenes through ffmpeg's `concat` filtergraph (never `-c copy` across
+     mismatched timebases!) so PTS timestamps stay 100% monotonic and never truncate the outro.
+  4. Asserts strict sync invariants (no overlapping cues, last cue finishes cleanly before video EOF).
 """
 from __future__ import annotations
 
 import asyncio
 import base64
-import json
 import math
 import os
-import re
 import shutil
 import struct
 import subprocess
@@ -44,9 +43,8 @@ OUT_THUMB = DEMO_DIR / "youtube-thumbnail.png"
 WIDTH = 1280
 HEIGHT = 720
 
-# Default expressive voices
-DEFAULT_ELEVENLABS_VOICE = "nPczCjzI2devNBz1zQrb"  # "Brian" — warm, resonant, suspenseful narrator
-DEFAULT_GOOGLE_VOICE = "en-US-Chirp3-HD-Charon"    # Chirp 3 HD — lively, natural nocturnal narrator
+DEFAULT_ELEVENLABS_VOICE = "nPczCjzI2devNBz1zQrb"  # Brian
+DEFAULT_GOOGLE_VOICE = "en-US-Chirp3-HD-Charon"    # Chirp 3 HD nocturnal storyteller
 DEFAULT_EDGE_VOICE = "en-US-AndrewMultilingualNeural"
 
 # Phosphor-Noir palette matching docs/art-direction-brief.md
@@ -54,7 +52,6 @@ C_VOID = (6, 9, 14)
 C_OBSIDIAN = (12, 17, 26)
 C_CHARCOAL = (21, 29, 43)
 C_SLATE = (35, 47, 66)
-C_STEEL = (59, 77, 104)
 C_MIST = (104, 125, 156)
 C_SILVER = (159, 178, 204)
 C_WHITE = (226, 236, 248)
@@ -64,79 +61,104 @@ C_AMBER = (245, 158, 11)
 C_CRIMSON = (239, 68, 68)
 C_VIOLET = (139, 92, 246)
 
-# Scripted segments: (id, narration_text, lower_third_label)
-SEGMENTS: List[Tuple[str, str, str]] = [
+# Each segment contains crisp, natural 1-sentence cues — each cue is synthesized and timed individually!
+# Format: (segment_id, chapter_label, [cue_texts...])
+SEGMENTS: List[Tuple[str, str, List[str]]] = [
     (
         "01_intro",
-        "Welcome to Night Shift Help Desk—our Kiroween Costume Contest entry. "
-        "Instead of pasting Halloween decorations onto a generic app, the ordinary workplace software itself is the horror.",
         "KIROWEEN 2026 · COSTUME CONTEST",
+        [
+            "Welcome to Night Shift Help Desk—our Kiroween Costume Contest entry.",
+            "Here, ordinary workplace software itself is the haunted object.",
+        ],
     ),
     (
         "02_checkin",
-        "You clock in alone at 3:00 AM on Halcyon Desk version 4.2. "
-        "Personalizing your analyst badge writes your own name directly into every forensic log and shift ending.",
         "01 // NIGHT SHIFT CHECK-IN (03:00)",
+        [
+            "You clock in alone at 3:00 AM on Halcyon Desk version 4.2.",
+            "Personalizing your analyst badge writes your name into every audit log.",
+        ],
     ),
     (
         "03_case1_inspect",
-        "Incident 0300 reports an empty workstation powering on by itself at 3:00 AM. "
-        "Inspecting the audit trail reveals an impossible closure timestamped 3:07—seven minutes in the future—already signed by you.",
         "02 // IMPOSSIBLE 03:07 AUDIT TRAIL",
+        [
+            "Incident 0300 reports an empty workstation powering on by itself at 3:00 AM.",
+            "Inspecting the audit trail reveals an impossible 3:07 closure—already signed by you.",
+        ],
     ),
     (
         "04_case1_cctv",
-        "Every live camera feed is custom animated pixel art authored via the Piskel MCP server. "
-        "Zooming into Camera B3-204 reveals the terminal booting on its own, with a faint silhouette reflected in the CRT glass.",
         "03 // PISKEL MCP 6× CCTV INSPECTOR",
+        [
+            "Every live camera feed is custom animated pixel art authored via Piskel MCP.",
+            "Zooming into Camera B3-204 reveals the screen booting on its own, with a faint silhouette in the glass.",
+        ],
     ),
     (
         "05_case1_close",
-        "If you trust the log and close the ticket, the shift clock snaps forward to 3:07, "
-        "a duplicate closure appears under your name, and your steaming coffee mug sprite freezes cold.",
         "04 // PATH A: COMPLY — CLOCK JUMP 03:07",
+        [
+            "If you trust the log and close the ticket, the clock snaps forward to 3:07.",
+            "A duplicate closure appears under your name, and your coffee mug freezes cold.",
+        ],
     ),
     (
         "06_case1_call",
-        "Replaying the case to challenge the log deletes the 3:07 entry, injects a phantom ticket from your own extension, "
-        "and rings your desk handset. Answering Extension 419 uncovers a chilling loopback transcript from yourself.",
         "05 // PATH B: DEFY — VOIP LOOPBACK EXT. 419",
+        [
+            "Replaying to challenge the log deletes the 3:07 row, adds a phantom ticket, and rings your desk phone.",
+            "Answering Extension 419 uncovers a chilling loopback transcript from yourself.",
+        ],
     ),
     (
         "07_case2",
-        "Case two escalates seven minutes later at 3:14. Your RFID badge unlocks the empty North Stairwell while still docked on your desk, "
-        "and the audit log remembers your earlier choice as the stairwell door cracks open on camera.",
         "06 // CASE 2: INC-0314 EMPTY STAIRWELL",
+        [
+            "Case two escalates at 3:14—your RFID badge unlocks the empty North Stairwell while still on your desk.",
+            "The audit log remembers your earlier choice as the stairwell door cracks open on camera.",
+        ],
     ),
     (
         "08_case3",
-        "By 3:21, the console itself turns uncanny: the Halcyon eye watches in crimson, your ID badge splits into two overlapping silhouettes, "
-        "your prior choices appear pre-dated at 2:55, and the ceiling camera behind Desk B-04 shows someone sitting in your chair.",
         "07 // CASE 3: INC-0321 SHIFT HANDOVER",
+        [
+            "By 3:21, the Halcyon eye watches in crimson, and your ID badge splits into two silhouettes.",
+            "Your previous decisions appear pre-dated at 2:55—before you even logged in.",
+            "And the ceiling camera behind Desk B-04 shows someone sitting in your chair.",
+        ],
     ),
     (
         "09_dossier",
-        "Your compliance and defiance pattern unlocks four persistent shift endings—like Extension 419—tracked in an end-of-shift dossier "
-        "with a shareable report card, Calm Mode for reduced motion, and zero jump scares or color-only clues.",
         "08 // 4 PERSISTENT ENDINGS & ACCESSIBILITY",
+        [
+            "Your choices unlock four persistent shift endings with a shareable report card.",
+            "It includes Calm Mode for reduced motion, with zero jump scares or color-only clues.",
+        ],
     ),
     (
         "10_mobile",
-        "Built mobile-first down to 360 pixels, critical timestamps and controls stay legible without clipping on phones, "
-        "backed by a procedural Web Audio bus mixer with adaptive dread layering.",
         "09 // 360px MOBILE-FIRST & WEB AUDIO",
+        [
+            "Built mobile-first down to 360 pixels, critical timestamps stay legible without clipping.",
+            "A procedural Web Audio bus mixer layers adaptive dread ambience under every shift.",
+        ],
     ),
     (
         "11_kiro_outro",
-        "Engineered with Kiro specs, steering docs, agent hooks, Piskel MCP pixel sprites, and 35 Vitest and fast-check property tests passing on Linux CI. "
-        "Play live on GitHub Pages—and watch your clock at 3:00 AM.",
         "10 // BUILT WITH KIRO + PISKEL MCP",
+        [
+            "Built with Kiro specs, steering docs, agent hooks, Piskel MCP sprites, and 35 tests on Linux CI.",
+            "Play live on GitHub Pages—and watch your clock at 3:00 AM.",
+        ],
     ),
 ]
 
+CUE_GAP_SEC = 0.24  # Clean natural breath pause between cues inside a segment
+
 
 def load_dotenv_local() -> None:
-    """Loads optional gitignored .env.local variables without overriding existing env vars."""
     env_file = ROOT / ".env.local"
     if not env_file.exists():
         return
@@ -164,28 +186,18 @@ def probe_duration(path: Path) -> float:
 
 
 # ---------------------------------------------------------------------------
-# Multi-Provider Studio Neural TTS
+# Per-Cue Studio Neural TTS (Exact Millisecond Duration per Subtitle!)
 # ---------------------------------------------------------------------------
 def synth_elevenlabs(text: str, out_mp3: Path, api_key: str) -> None:
     voice_id = os.environ.get("ELEVENLABS_VOICE_ID", DEFAULT_ELEVENLABS_VOICE)
     model_id = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2")
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
     resp = requests.post(
-        url,
-        headers={
-            "xi-api-key": api_key,
-            "Content-Type": "application/json",
-            "Accept": "audio/mpeg",
-        },
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+        headers={"xi-api-key": api_key, "Content-Type": "application/json", "Accept": "audio/mpeg"},
         json={
             "text": text,
             "model_id": model_id,
-            "voice_settings": {
-                "stability": 0.45,
-                "similarity_boost": 0.78,
-                "style": 0.35,
-                "use_speaker_boost": True,
-            },
+            "voice_settings": {"stability": 0.45, "similarity_boost": 0.78, "style": 0.35, "use_speaker_boost": True},
         },
         timeout=45,
     )
@@ -195,23 +207,18 @@ def synth_elevenlabs(text: str, out_mp3: Path, api_key: str) -> None:
 
 def synth_google_tts(text: str, out_mp3: Path, api_key: str) -> None:
     voice_name = os.environ.get("GOOGLE_TTS_VOICE", DEFAULT_GOOGLE_VOICE)
-    url = f"https://texttospeech.googleapis.com/v1/text:synthesize?key={api_key}"
     resp = requests.post(
-        url,
+        f"https://texttospeech.googleapis.com/v1/text:synthesize?key={api_key}",
         headers={"Content-Type": "application/json"},
         json={
             "input": {"text": text},
             "voice": {"languageCode": "en-US", "name": voice_name},
-            "audioConfig": {
-                "audioEncoding": "MP3",
-                "speakingRate": 1.0,
-            },
+            "audioConfig": {"audioEncoding": "MP3", "speakingRate": 1.02},
         },
         timeout=45,
     )
     resp.raise_for_status()
-    data = resp.json()
-    out_mp3.write_bytes(base64.b64decode(data["audioContent"]))
+    out_mp3.write_bytes(base64.b64decode(resp.json()["audioContent"]))
 
 
 async def synth_edge_tts(text: str, out_mp3: Path) -> None:
@@ -239,47 +246,68 @@ def synth_sapi_fallback(text: str, out_wav: Path) -> None:
     run_cmd(["powershell", "-NoProfile", "-Command", ps])
 
 
-def generate_narration() -> Dict[str, Tuple[Path, float]]:
-    """Generates studio 48kHz stereo WAV narration using the best configured TTS engine."""
+def normalize_and_trim_cue(src_audio: Path, out_wav: Path) -> float:
+    """Converts cue to 48kHz stereo WAV and trims leading/trailing dead silence so text matches speech exactly."""
+    run_cmd([
+        "ffmpeg", "-y", "-i", str(src_audio),
+        "-af", "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.04,areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.06,areverse",
+        "-ar", "48000", "-ac", "2",
+        str(out_wav),
+    ])
+    return probe_duration(out_wav)
+
+
+def generate_per_cue_narration() -> Tuple[Dict[str, List[Tuple[Path, float, str]]], Dict[str, float]]:
+    """
+    Synthesizes every individual subtitle cue and returns:
+      - seg_cues: {segment_id: [(wav_path, exact_dur, cue_text), ...]}
+      - seg_total_durs: {segment_id: sum_of_cues_and_gaps}
+    """
     load_dotenv_local()
-    audio_dir = WORK_DIR / "narration"
+    audio_dir = WORK_DIR / "cues"
+    if audio_dir.exists():
+        shutil.rmtree(audio_dir)
     audio_dir.mkdir(parents=True, exist_ok=True)
-    results: Dict[str, Tuple[Path, float]] = {}
 
     eleven_key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
     google_key = (os.environ.get("GOOGLE_TTS_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
+    provider = "elevenlabs" if eleven_key else "google" if google_key else "edge"
+    print(f"  [tts] active provider: {provider} (per-cue exact synthesis)")
 
-    provider = (
-        "elevenlabs" if eleven_key
-        else "google" if google_key
-        else "edge"
-    )
-    print(f"  [tts] active provider: {provider}")
+    seg_cues: Dict[str, List[Tuple[Path, float, str]]] = {}
+    seg_total_durs: Dict[str, float] = {}
 
-    for seg_id, text, _ in SEGMENTS:
-        mp3_path = audio_dir / f"{seg_id}.mp3"
-        wav_path = audio_dir / f"{seg_id}.wav"
+    for seg_id, _, cue_texts in SEGMENTS:
+        entries: List[Tuple[Path, float, str]] = []
+        for c_idx, text in enumerate(cue_texts, start=1):
+            cue_key = f"{seg_id}_c{c_idx}"
+            raw_mp3 = audio_dir / f"{cue_key}.mp3"
+            out_wav = audio_dir / f"{cue_key}.wav"
 
-        if provider == "elevenlabs":
-            synth_elevenlabs(text, mp3_path, eleven_key)
-            run_cmd(["ffmpeg", "-y", "-i", str(mp3_path), "-ar", "48000", "-ac", "2", str(wav_path)])
-        elif provider == "google":
-            synth_google_tts(text, mp3_path, google_key)
-            run_cmd(["ffmpeg", "-y", "-i", str(mp3_path), "-ar", "48000", "-ac", "2", str(wav_path)])
-        else:
-            try:
-                asyncio.run(synth_edge_tts(text, mp3_path))
-                run_cmd(["ffmpeg", "-y", "-i", str(mp3_path), "-ar", "48000", "-ac", "2", str(wav_path)])
-            except Exception as exc:
-                print(f"  [tts] edge_tts failed ({exc}); falling back to Windows SAPI")
-                raw_wav = audio_dir / f"{seg_id}_sapi.wav"
-                synth_sapi_fallback(text, raw_wav)
-                run_cmd(["ffmpeg", "-y", "-i", str(raw_wav), "-ar", "48000", "-ac", "2", str(wav_path)])
+            if provider == "elevenlabs":
+                synth_elevenlabs(text, raw_mp3, eleven_key)
+                dur = normalize_and_trim_cue(raw_mp3, out_wav)
+            elif provider == "google":
+                synth_google_tts(text, raw_mp3, google_key)
+                dur = normalize_and_trim_cue(raw_mp3, out_wav)
+            else:
+                try:
+                    asyncio.run(synth_edge_tts(text, raw_mp3))
+                    dur = normalize_and_trim_cue(raw_mp3, out_wav)
+                except Exception as exc:
+                    print(f"  [tts] edge_tts failed ({exc}); using Windows SAPI fallback")
+                    raw_wav = audio_dir / f"{cue_key}_sapi.wav"
+                    synth_sapi_fallback(text, raw_wav)
+                    dur = normalize_and_trim_cue(raw_wav, out_wav)
 
-        dur = probe_duration(wav_path)
-        results[seg_id] = (wav_path, dur)
-        print(f"  [tts] {seg_id}: {dur:.2f}s")
-    return results
+            entries.append((out_wav, dur, text))
+            print(f"  [tts] {cue_key}: {dur:.2f}s | {text}")
+
+        total = sum(d for _, d, _ in entries) + CUE_GAP_SEC * max(0, len(entries) - 1)
+        seg_cues[seg_id] = entries
+        seg_total_durs[seg_id] = total
+
+    return seg_cues, seg_total_durs
 
 
 # ---------------------------------------------------------------------------
@@ -420,29 +448,25 @@ def make_still_clip(png_path: Path, duration: float, out_mp4: Path, fade_in: flo
 
 
 # ---------------------------------------------------------------------------
-# White-Screen Detector + Live Playwright Capture (Zero `about:blank` Flash!)
+# Pixel-Variance UI Paint Detector + Playwright Live Capture
 # ---------------------------------------------------------------------------
 def detect_first_painted_timestamp(video_path: Path, fallback_sec: float) -> float:
-    """Finds the exact timestamp where Playwright finishes painting real UI (not flat white or flat black)."""
+    """Finds the exact timestamp where Playwright finishes painting real UI (neither flat white nor flat black)."""
     probe_dir = WORK_DIR / f"luma_{video_path.stem}"
     if probe_dir.exists():
         shutil.rmtree(probe_dir)
     probe_dir.mkdir(parents=True, exist_ok=True)
 
-    # Sample at 10 fps for the first 10 seconds to locate the exact first non-blank painted UI frame
     run_cmd([
         "ffmpeg", "-y", "-i", str(video_path), "-t", "10",
         "-vf", "fps=10,scale=96:54",
         str(probe_dir / "f_%03d.png"),
     ])
-    frames = sorted(probe_dir.glob("f_*.png"))
-    for idx, fp in enumerate(frames):
+    for idx, fp in enumerate(sorted(probe_dir.glob("f_*.png"))):
         im = Image.open(fp).convert("L")
         pixels = list(im.get_flattened_data() if hasattr(im, "get_flattened_data") else im.getdata())
         mean = sum(pixels) / max(1, len(pixels))
-        var = sum((p - mean) ** 2 for p in pixels) / max(1, len(pixels))
-        stdev = math.sqrt(var)
-        # Blank white or blank dark about:blank has stdev ~0; painted Halcyon Desk UI has stdev > 14 and dark backdrop (mean < 90)
+        stdev = math.sqrt(sum((p - mean) ** 2 for p in pixels) / max(1, len(pixels)))
         if stdev > 14.0 and mean < 110.0 and max(pixels) > 120:
             return max(0.0, idx * 0.1 + 0.1)
     return max(0.0, fallback_sec)
@@ -504,7 +528,7 @@ def set_chapter(page, label: str) -> None:
     )
 
 
-def glide_and_click(page, selector: str, pause_before: float = 0.35, pause_after: float = 0.45) -> None:
+def glide_and_click(page, selector: str, pause_before: float = 0.32, pause_after: float = 0.4) -> None:
     loc = page.locator(selector).first
     loc.scroll_into_view_if_needed()
     box = loc.bounding_box()
@@ -528,7 +552,7 @@ def glide_and_click(page, selector: str, pause_before: float = 0.35, pause_after
                 setTimeout(() => {
                   d.style.transform = 'translate(-50%, -50%) scale(1)';
                   d.style.borderColor = '#38bdf8';
-                }, 170);
+                }, 160);
               }
             }"""
         )
@@ -536,19 +560,25 @@ def glide_and_click(page, selector: str, pause_before: float = 0.35, pause_after
     page.wait_for_timeout(int(pause_after * 1000))
 
 
-def wait_remaining(start_ms: float, target_sec: float, page) -> None:
-    elapsed = (page.evaluate("() => performance.now()") - start_ms) / 1000.0
-    rem = target_sec - elapsed
+def wait_remaining(start_wall: float, target_sec: float, page) -> None:
+    rem = target_sec - (time.monotonic() - start_wall)
     if rem > 0.05:
         page.wait_for_timeout(int(rem * 1000))
 
 
-def record_desktop_gameplay(durations: Dict[str, float]) -> Tuple[Path, float]:
-    """Records segments 02..09 in Playwright Chromium and returns (webm_path, measured_load_sec)."""
+def record_desktop_gameplay(seg_durs: Dict[str, float]) -> Tuple[Path, float, Dict[str, float]]:
+    """
+    Records desktop segments 02..09 and returns:
+      (webm_path, blank_trim_sec, rel_seg_starts_after_trim)
+    """
     vid_dir = WORK_DIR / "pw_desktop"
     if vid_dir.exists():
         shutil.rmtree(vid_dir)
     vid_dir.mkdir(parents=True, exist_ok=True)
+
+    seg_labels = {s[0]: s[1] for s in SEGMENTS}
+    rel_starts: Dict[str, float] = {}
+    PAD = 0.45
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -559,88 +589,97 @@ def record_desktop_gameplay(durations: Dict[str, float]) -> Tuple[Path, float]:
             record_video_size={"width": WIDTH, "height": HEIGHT},
             device_scale_factor=1,
         )
-        t_start = time.monotonic()
+        t_rec_start = time.monotonic()
         page = context.new_page()
         page.goto(LIVE_URL, wait_until="networkidle")
         page.evaluate("() => document.fonts ? document.fonts.ready : Promise.resolve()")
         page.evaluate(CURSOR_INJECT_JS)
-        set_chapter(page, SEGMENTS[1][2])
-        page.wait_for_timeout(250)
-        load_sec = time.monotonic() - t_start
+        set_chapter(page, seg_labels["02_checkin"])
+        page.wait_for_timeout(200)
+        t_painted = time.monotonic()
+        load_sec = t_painted - t_rec_start
 
-        # Segment 02: Check-In
-        t0 = page.evaluate("() => performance.now()")
-        page.wait_for_timeout(900)
-        glide_and_click(page, "#checkin-name-input", 0.35, 0.2)
-        page.fill("#checkin-name-input", "")
-        page.type("#checkin-name-input", "Pakorn", delay=85)
-        page.wait_for_timeout(550)
-        glide_and_click(page, "#checkin-submit-btn", 0.4, 0.55)
-        wait_remaining(t0, durations["02_checkin"] + 0.35, page)
-
-        # Segment 03: Case 1 Inspect Audit Trail
-        t0 = page.evaluate("() => performance.now()")
-        set_chapter(page, SEGMENTS[2][2])
+        # 02_checkin
+        t0 = time.monotonic()
+        rel_starts["02_checkin"] = t0 - t_painted
         page.wait_for_timeout(750)
-        glide_and_click(page, "#inspect-button", 0.45, 0.85)
-        wait_remaining(t0, durations["03_case1_inspect"] + 0.35, page)
+        glide_and_click(page, "#checkin-name-input", 0.32, 0.18)
+        page.fill("#checkin-name-input", "")
+        page.type("#checkin-name-input", "Pakorn", delay=80)
+        page.wait_for_timeout(450)
+        glide_and_click(page, "#checkin-submit-btn", 0.35, 0.5)
+        wait_remaining(t0, seg_durs["02_checkin"] + PAD, page)
 
-        # Segment 04: 6x CCTV Zoom Inspector
-        t0 = page.evaluate("() => performance.now()")
-        set_chapter(page, SEGMENTS[3][2])
-        glide_and_click(page, "#cctv-zoom-button", 0.4, 2.0)
-        wait_remaining(t0, durations["04_case1_cctv"] - 1.0, page)
-        glide_and_click(page, "#cctv-modal-close", 0.35, 0.45)
-        wait_remaining(t0, durations["04_case1_cctv"] + 0.35, page)
+        # 03_case1_inspect
+        t0 = time.monotonic()
+        rel_starts["03_case1_inspect"] = t0 - t_painted
+        set_chapter(page, seg_labels["03_case1_inspect"])
+        page.wait_for_timeout(700)
+        glide_and_click(page, "#inspect-button", 0.4, 0.8)
+        wait_remaining(t0, seg_durs["03_case1_inspect"] + PAD, page)
 
-        # Segment 05: Case 1 Path A — Close as Resolved
-        t0 = page.evaluate("() => performance.now()")
-        set_chapter(page, SEGMENTS[4][2])
-        glide_and_click(page, "#close-button", 0.45, 1.0)
-        page.evaluate("window.scrollTo({ top: 0, behavior: 'smooth' })")
-        wait_remaining(t0, durations["05_case1_close"] + 0.35, page)
-
-        # Segment 06: Replay Case 1 -> Call Requester -> Answer Ext. 419
-        t0 = page.evaluate("() => performance.now()")
-        set_chapter(page, SEGMENTS[5][2])
-        glide_and_click(page, "#replay-case-button", 0.35, 0.55)
-        glide_and_click(page, "#inspect-button", 0.35, 0.45)
-        glide_and_click(page, "#call-button", 0.4, 1.1)
-        glide_and_click(page, "#phone-answer-button", 0.5, 1.2)
-        wait_remaining(t0, durations["06_case1_call"] + 0.4, page)
-
-        # Segment 07: Case 2 — INC-0314 Stairwell
-        t0 = page.evaluate("() => performance.now()")
-        set_chapter(page, SEGMENTS[6][2])
-        glide_and_click(page, "#next-case-button", 0.35, 0.65)
-        page.evaluate("window.scrollTo({ top: 0, behavior: 'smooth' })")
-        glide_and_click(page, "#inspect-button", 0.4, 0.75)
-        glide_and_click(page, "#cctv-zoom-button", 0.35, 2.2)
+        # 04_case1_cctv
+        t0 = time.monotonic()
+        rel_starts["04_case1_cctv"] = t0 - t_painted
+        set_chapter(page, seg_labels["04_case1_cctv"])
+        glide_and_click(page, "#cctv-zoom-button", 0.35, 1.8)
+        wait_remaining(t0, max(2.8, seg_durs["04_case1_cctv"] - 0.9), page)
         glide_and_click(page, "#cctv-modal-close", 0.3, 0.4)
-        glide_and_click(page, "#call-button", 0.4, 0.8)
-        wait_remaining(t0, durations["07_case2"] + 0.35, page)
+        wait_remaining(t0, seg_durs["04_case1_cctv"] + PAD, page)
 
-        # Segment 08: Case 3 — INC-0321 Shift Handover + Desk B-04 CCTV Zoom
-        t0 = page.evaluate("() => performance.now()")
-        set_chapter(page, SEGMENTS[7][2])
-        glide_and_click(page, "#next-case-button", 0.35, 0.7)
+        # 05_case1_close
+        t0 = time.monotonic()
+        rel_starts["05_case1_close"] = t0 - t_painted
+        set_chapter(page, seg_labels["05_case1_close"])
+        glide_and_click(page, "#close-button", 0.4, 0.9)
         page.evaluate("window.scrollTo({ top: 0, behavior: 'smooth' })")
-        glide_and_click(page, "#inspect-button", 0.4, 0.9)
-        glide_and_click(page, "#cctv-zoom-button", 0.4, 3.0)
-        glide_and_click(page, "#cctv-modal-close", 0.3, 0.4)
-        wait_remaining(t0, durations["08_case3"] + 0.35, page)
+        wait_remaining(t0, seg_durs["05_case1_close"] + PAD, page)
 
-        # Segment 09: Pull Power -> Final Shift Dossier -> Copy Shift Report + Calm Mode
-        t0 = page.evaluate("() => performance.now()")
-        set_chapter(page, SEGMENTS[8][2])
-        glide_and_click(page, "#call-button", 0.35, 0.85)
-        glide_and_click(page, "#next-case-button", 0.35, 1.0)
+        # 06_case1_call
+        t0 = time.monotonic()
+        rel_starts["06_case1_call"] = t0 - t_painted
+        set_chapter(page, seg_labels["06_case1_call"])
+        glide_and_click(page, "#replay-case-button", 0.32, 0.45)
+        glide_and_click(page, "#inspect-button", 0.3, 0.4)
+        glide_and_click(page, "#call-button", 0.35, 1.0)
+        glide_and_click(page, "#phone-answer-button", 0.45, 1.1)
+        wait_remaining(t0, seg_durs["06_case1_call"] + PAD, page)
+
+        # 07_case2
+        t0 = time.monotonic()
+        rel_starts["07_case2"] = t0 - t_painted
+        set_chapter(page, seg_labels["07_case2"])
+        glide_and_click(page, "#next-case-button", 0.32, 0.6)
         page.evaluate("window.scrollTo({ top: 0, behavior: 'smooth' })")
-        page.wait_for_timeout(1000)
-        glide_and_click(page, "#copy-report-button", 0.45, 0.85)
-        glide_and_click(page, "#motion-button", 0.45, 0.65)
+        glide_and_click(page, "#inspect-button", 0.35, 0.7)
+        glide_and_click(page, "#cctv-zoom-button", 0.32, 2.0)
+        glide_and_click(page, "#cctv-modal-close", 0.28, 0.35)
+        glide_and_click(page, "#call-button", 0.35, 0.75)
+        wait_remaining(t0, seg_durs["07_case2"] + PAD, page)
+
+        # 08_case3
+        t0 = time.monotonic()
+        rel_starts["08_case3"] = t0 - t_painted
+        set_chapter(page, seg_labels["08_case3"])
+        glide_and_click(page, "#next-case-button", 0.32, 0.65)
+        page.evaluate("window.scrollTo({ top: 0, behavior: 'smooth' })")
+        glide_and_click(page, "#inspect-button", 0.35, 0.85)
+        glide_and_click(page, "#cctv-zoom-button", 0.35, 2.8)
+        glide_and_click(page, "#cctv-modal-close", 0.28, 0.35)
+        wait_remaining(t0, seg_durs["08_case3"] + PAD, page)
+
+        # 09_dossier
+        t0 = time.monotonic()
+        rel_starts["09_dossier"] = t0 - t_painted
+        set_chapter(page, seg_labels["09_dossier"])
+        glide_and_click(page, "#call-button", 0.32, 0.75)
+        glide_and_click(page, "#next-case-button", 0.32, 0.9)
+        page.evaluate("window.scrollTo({ top: 0, behavior: 'smooth' })")
+        page.wait_for_timeout(900)
+        glide_and_click(page, "#copy-report-button", 0.4, 0.75)
         glide_and_click(page, "#motion-button", 0.4, 0.55)
-        wait_remaining(t0, durations["09_dossier"] + 0.4, page)
+        glide_and_click(page, "#motion-button", 0.35, 0.5)
+        wait_remaining(t0, seg_durs["09_dossier"] + 0.6, page)
 
         video_path = Path(page.video.path())
         context.close()
@@ -648,11 +687,10 @@ def record_desktop_gameplay(durations: Dict[str, float]) -> Tuple[Path, float]:
 
     trim_s = detect_first_painted_timestamp(video_path, load_sec)
     print(f"  [pw] desktop captured: {video_path} (trimming {trim_s:.2f}s blank load frames)")
-    return video_path, trim_s
+    return video_path, trim_s, rel_starts
 
 
 def record_mobile_showcase(duration: float) -> Path:
-    """Records 360x680 mobile showcase with blank load frames trimmed and composites into 1280x720."""
     vid_dir = WORK_DIR / "pw_mobile"
     if vid_dir.exists():
         shutil.rmtree(vid_dir)
@@ -672,15 +710,15 @@ def record_mobile_showcase(duration: float) -> Path:
         page.goto(LIVE_URL, wait_until="networkidle")
         page.fill("#checkin-name-input", "Pakorn")
         page.click("#checkin-submit-btn")
-        page.wait_for_timeout(300)
+        page.wait_for_timeout(250)
         load_sec = time.monotonic() - t_start
 
-        page.wait_for_timeout(1100)
+        page.wait_for_timeout(950)
         page.click("#inspect-button")
-        page.wait_for_timeout(1800)
+        page.wait_for_timeout(1600)
         for y in (120, 260, 420, 560, 0):
             page.evaluate(f"window.scrollTo({{ top: {y}, behavior: 'smooth' }})")
-            page.wait_for_timeout(int(max(600, (duration * 1000 - 2900) / 5)))
+            page.wait_for_timeout(int(max(550, (duration * 1000 - 2500) / 5)))
         raw_path = Path(page.video.path())
         context.close()
         browser.close()
@@ -719,7 +757,7 @@ def record_mobile_showcase(duration: float) -> Path:
         "-loop", "1", "-i", str(bg_png),
         "-ss", f"{trim_s:.3f}", "-i", str(raw_path),
         "-filter_complex", "[1:v]scale=360:680[mob];[0:v][mob]overlay=838:20:shortest=1,format=yuv420p[v]",
-        "-map", "[v]", "-t", f"{duration + 0.35:.3f}", "-r", "30",
+        "-map", "[v]", "-t", f"{duration + 0.6:.3f}", "-r", "30",
         "-c:v", "libx264", "-preset", "medium", "-crf", "18",
         str(out_mp4),
     ])
@@ -728,7 +766,7 @@ def record_mobile_showcase(duration: float) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Audio Bed + Chunked Subtitles (SRT + Burned-in Phosphor-Noir ASS)
+# Sample-Exact Audio Assembly + Zero-Drift Subtitles
 # ---------------------------------------------------------------------------
 def generate_ambient_bed(total_sec: float, phone_ring_at: float, out_wav: Path) -> None:
     sr = 48000
@@ -736,7 +774,7 @@ def generate_ambient_bed(total_sec: float, phone_ring_at: float, out_wav: Path) 
     frames = bytearray()
     for i in range(n):
         t = i / sr
-        env = min(1.0, t / 1.5) * min(1.0, max(0.0, (total_sec - t) / 1.8))
+        env = min(1.0, t / 1.4) * min(1.0, max(0.0, (total_sec - t) / 1.6))
         dread = min(1.0, t / max(1.0, total_sec * 0.7))
         hum = 0.032 * math.sin(2 * math.pi * 60.0 * t) + 0.008 * math.sin(2 * math.pi * 120.3 * t)
         drone = dread * 0.042 * (
@@ -776,77 +814,73 @@ def fmt_ass(sec: float) -> str:
     return f"{h}:{m:02d}:{s:02d}.{cs:02d}"
 
 
-def split_into_cues(text: str, max_chars: int = 58) -> List[str]:
-    words = text.strip().split()
-    chunks: List[str] = []
-    buf: List[str] = []
-    for w in words:
-        candidate = " ".join(buf + [w])
-        if buf and len(candidate) > max_chars:
-            chunks.append(" ".join(buf))
-            buf = [w]
-        else:
-            buf.append(w)
-            if len(" ".join(buf)) >= 30 and w[-1] in ".?!—":
-                chunks.append(" ".join(buf))
-                buf = []
-    if buf:
-        if chunks and len(" ".join(buf)) < 18 and len(chunks[-1]) + 1 + len(" ".join(buf)) <= max_chars + 10:
-            chunks[-1] = chunks[-1] + " " + " ".join(buf)
-        else:
-            chunks.append(" ".join(buf))
-    return chunks
+def wrap_ass_two_lines(text: str, max_chars: int = 58) -> str:
+    """Wraps a single sentence neatly into at most 2 balanced lines for crisp readability."""
+    if len(text) <= max_chars:
+        return text
+    words = text.split()
+    best_split = len(words) // 2
+    best_diff = 999
+    for i in range(1, len(words)):
+        left = " ".join(words[:i])
+        right = " ".join(words[i:])
+        diff = abs(len(left) - len(right))
+        if diff < best_diff:
+            best_diff = diff
+            best_split = i
+    return " ".join(words[:best_split]) + r"\N" + " ".join(words[best_split:])
 
 
-def build_voice_and_subtitles(
-    narration: Dict[str, Tuple[Path, float]],
-    offsets: List[Tuple[str, float, str]],
+def assemble_exact_voice_and_subtitles(
+    placed_cues: List[Tuple[Path, float, float, str]],
     total_sec: float,
     out_wav: Path,
     out_ass: Path,
 ) -> None:
+    """
+    Places every spoken WAV cue at its exact sample-accurate start time, writes matching
+    SRT + ASS subtitles with 0.000s audio-text drift, and asserts strict non-overlap invariants.
+    """
+    # Strict invariant checks before mastering
+    for i in range(len(placed_cues) - 1):
+        _, s1, e1, t1 = placed_cues[i]
+        _, s2, _, t2 = placed_cues[i + 1]
+        assert s2 >= e1 - 0.005, f"Subtitle/audio overlap detected: cue {i+1} ends {e1:.2f}s > cue {i+2} starts {s2:.2f}s"
+    last_end = placed_cues[-1][2]
+    assert last_end <= total_sec + 0.05, f"Last cue ends at {last_end:.2f}s > video duration {total_sec:.2f}s"
+
     inputs = ["-f", "lavfi", "-t", f"{total_sec:.3f}", "-i", "anullsrc=r=48000:cl=stereo"]
     filters = []
     mix_labels = ["[0:a]"]
-    refined_cues: List[Tuple[float, float, str]] = []
+    srt_lines = []
+    ass_events = []
 
-    for idx, (seg_id, start_s, text) in enumerate(offsets, start=1):
-        wav_path, dur = narration[seg_id]
+    for idx, (wav_path, st, en, text) in enumerate(placed_cues, start=1):
         inputs += ["-i", str(wav_path)]
-        delay_ms = int(round(start_s * 1000))
+        delay_ms = int(round(st * 1000))
         filters.append(f"[{idx}:a]adelay={delay_ms}|{delay_ms},volume=1.18[a{idx}]")
         mix_labels.append(f"[a{idx}]")
 
-        parts = split_into_cues(text, max_chars=58)
-        total_chars = sum(max(1, len(p)) for p in parts)
-        cursor = start_s
-        for p_idx, part in enumerate(parts):
-            p_dur = max(0.3, dur) * (max(1, len(part)) / total_chars)
-            c_end = start_s + dur if p_idx == len(parts) - 1 else cursor + p_dur
-            refined_cues.append((cursor, c_end, part))
-            cursor = c_end
+        srt_lines.extend([str(idx), f"{fmt_srt(st)} --> {fmt_srt(en)}", text, ""])
+        ass_events.append(f"Dialogue: 0,{fmt_ass(st)},{fmt_ass(en)},Phosphor,,0,0,0,,{wrap_ass_two_lines(text)}")
 
-    srt_lines = []
-    for i, (st, en, txt) in enumerate(refined_cues, start=1):
-        srt_lines.extend([str(i), f"{fmt_srt(st)} --> {fmt_srt(en)}", txt, ""])
     OUT_SRT.write_text("\n".join(srt_lines), encoding="utf-8")
 
     ass_header = """[Script Info]
 ScriptType: v4.00+
 PlayResX: 1280
 PlayResY: 720
-WrapStyle: 0
+WrapStyle: 2
 ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Phosphor,Segoe UI,24,&H00F8ECE2,&H00F8D038,&H400E0906,&HB80E0906,-1,0,0,0,100,100,0.4,0,3,8,0,2,80,80,46,1
+Style: Phosphor,Segoe UI,23,&H00F8ECE2,&H00F8D038,&H400E0906,&HB80E0906,-1,0,0,0,100,100,0.3,0,3,7,0,2,72,72,44,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
-    events = [f"Dialogue: 0,{fmt_ass(st)},{fmt_ass(en)},Phosphor,,0,0,0,,{txt}" for st, en, txt in refined_cues]
-    out_ass.write_text(ass_header + "\n".join(events) + "\n", encoding="utf-8")
+    out_ass.write_text(ass_header + "\n".join(ass_events) + "\n", encoding="utf-8")
 
     filter_complex = ";".join(filters) + ";" + "".join(mix_labels) + f"amix=inputs={len(mix_labels)}:normalize=0:duration=first[vout]"
     run_cmd([
@@ -861,9 +895,8 @@ def main() -> None:
     DEMO_DIR.mkdir(parents=True, exist_ok=True)
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("Step 1/5: Generating studio voiceover narration...")
-    narration = generate_narration()
-    durations = {k: v[1] for k, v in narration.items()}
+    print("Step 1/5: Generating per-cue Chirp 3 HD narration (0.00s subtitle drift)...")
+    seg_cues, seg_durs = generate_per_cue_narration()
 
     print("Step 2/5: Generating Phosphor-Noir title, thumbnail & Kiro architecture cards...")
     intro_png = WORK_DIR / "intro_card.png"
@@ -872,15 +905,15 @@ def main() -> None:
     create_kiro_outro_card(outro_png)
     shutil.copy2(intro_png, OUT_THUMB)
 
-    intro_dur = durations["01_intro"] + 0.65
-    outro_dur = durations["11_kiro_outro"] + 1.0
+    intro_dur = seg_durs["01_intro"] + 0.85
+    outro_dur = seg_durs["11_kiro_outro"] + 1.35
     intro_mp4 = WORK_DIR / "scene_intro.mp4"
     outro_mp4 = WORK_DIR / "scene_outro.mp4"
     make_still_clip(intro_png, intro_dur, intro_mp4, fade_in=0.35, fade_out=0.35)
-    make_still_clip(outro_png, outro_dur, outro_mp4, fade_in=0.35, fade_out=0.55)
+    make_still_clip(outro_png, outro_dur, outro_mp4, fade_in=0.35, fade_out=0.6)
 
-    print("Step 3/5: Recording live Playwright gameplay from GitHub Pages (zero white flash)...")
-    desktop_webm, desktop_trim = record_desktop_gameplay(durations)
+    print("Step 3/5: Recording live Playwright gameplay from GitHub Pages (zero blank frames)...")
+    desktop_webm, desktop_trim, rel_starts = record_desktop_gameplay(seg_durs)
     desktop_mp4 = WORK_DIR / "scene_desktop.mp4"
     run_cmd([
         "ffmpeg", "-y", "-ss", f"{desktop_trim:.3f}", "-i", str(desktop_webm),
@@ -888,50 +921,96 @@ def main() -> None:
         "-c:v", "libx264", "-preset", "medium", "-crf", "17",
         str(desktop_mp4),
     ])
-    desktop_dur = probe_duration(desktop_mp4)
 
-    mobile_mp4 = record_mobile_showcase(durations["10_mobile"])
-    mobile_dur = probe_duration(mobile_mp4)
+    mobile_mp4 = record_mobile_showcase(seg_durs["10_mobile"])
 
-    print("Step 4/5: Concatenating scenes & synchronizing voice, ambience, and 43 subtitles...")
-    concat_list = WORK_DIR / "concat.txt"
-    concat_list.write_text(
-        "\n".join([
-            f"file '{intro_mp4.as_posix()}'",
-            f"file '{desktop_mp4.as_posix()}'",
-            f"file '{mobile_mp4.as_posix()}'",
-            f"file '{outro_mp4.as_posix()}'",
-        ]),
-        encoding="utf-8",
-    )
+    # Ensure desktop_mp4 is always long enough for all desktop narration cues without spilling into mobile
+    d_intro = probe_duration(intro_mp4)
+    d_desktop_raw = probe_duration(desktop_mp4)
+    desk_ids = ["02_checkin", "03_case1_inspect", "04_case1_cctv", "05_case1_close", "06_case1_call", "07_case2", "08_case3", "09_dossier"]
+    sim_cur = d_intro + 0.2
+    for sid in desk_ids:
+        sim_cur = max(sim_cur, d_intro + 0.2 + rel_starts[sid])
+        sim_cur += seg_durs[sid] + 0.22
+    needed_desk = (sim_cur - d_intro) + 0.4
+    if needed_desk > d_desktop_raw:
+        pad_s = needed_desk - d_desktop_raw
+        padded_desk = WORK_DIR / "scene_desktop_padded.mp4"
+        run_cmd([
+            "ffmpeg", "-y", "-i", str(desktop_mp4),
+            "-vf", f"tpad=stop_mode=clone:stop_duration={pad_s:.3f},fps=30,format=yuv420p",
+            "-c:v", "libx264", "-preset", "medium", "-crf", "17",
+            str(padded_desk),
+        ])
+        desktop_mp4 = padded_desk
+
+    # Measure TRUE encoded scene durations
+    d_desktop = probe_duration(desktop_mp4)
+    d_mobile = probe_duration(mobile_mp4)
+    d_outro = probe_duration(outro_mp4)
+    print(f"  [timing] intro={d_intro:.2f}s desktop={d_desktop:.2f}s mobile={d_mobile:.2f}s outro={d_outro:.2f}s")
+
+    print("Step 4/5: Concatenating scenes via filtergraph (monotonic PTS, zero truncation)...")
     video_only = WORK_DIR / "video_only.mp4"
-    run_cmd(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(concat_list), "-c", "copy", str(video_only)])
+    run_cmd([
+        "ffmpeg", "-y",
+        "-i", str(intro_mp4),
+        "-i", str(desktop_mp4),
+        "-i", str(mobile_mp4),
+        "-i", str(outro_mp4),
+        "-filter_complex",
+        "[0:v]fps=30,format=yuv420p,setpts=PTS-STARTPTS[v0];"
+        "[1:v]fps=30,format=yuv420p,setpts=PTS-STARTPTS[v1];"
+        "[2:v]fps=30,format=yuv420p,setpts=PTS-STARTPTS[v2];"
+        "[3:v]fps=30,format=yuv420p,setpts=PTS-STARTPTS[v3];"
+        "[v0][v1][v2][v3]concat=n=4:v=1:a=0[vcat]",
+        "-map", "[vcat]", "-r", "30",
+        "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-pix_fmt", "yuv420p",
+        str(video_only),
+    ])
     total_dur = probe_duration(video_only)
 
-    seg_text_map = {s[0]: s[1] for s in SEGMENTS}
-    offsets: List[Tuple[str, float, str]] = [("01_intro", 0.3, seg_text_map["01_intro"])]
+    # Build exact non-overlapping cue timeline anchored to each scene's real start!
+    placed_cues: List[Tuple[Path, float, float, str]] = []
 
+    def place_segment(seg_id: str, desired_start: float) -> float:
+        prev_end = placed_cues[-1][2] + 0.18 if placed_cues else 0.0
+        cur = max(desired_start, prev_end)
+        for wav_p, dur, text in seg_cues[seg_id]:
+            placed_cues.append((wav_p, cur, cur + dur, text))
+            cur += dur + CUE_GAP_SEC
+        return placed_cues[-1][2]
+
+    # Scene 1: Intro
+    place_segment("01_intro", 0.35)
+
+    # Scene 2: Desktop (anchored to recorded relative starts, guaranteed never to overlap)
     desk_ids = ["02_checkin", "03_case1_inspect", "04_case1_cctv", "05_case1_close", "06_case1_call", "07_case2", "08_case3", "09_dossier"]
-    raw_desk_sum = sum(durations[sid] + 0.36 for sid in desk_ids)
-    scale = desktop_dur / max(0.1, raw_desk_sum)
-    cur = intro_dur + 0.15
-    phone_ring_time = intro_dur + 40.0
+    # Check if Playwright wall-clock span slightly differs from transcoded desktop duration
+    last_rel_end = rel_starts["09_dossier"] + seg_durs["09_dossier"] + 0.5
+    stretch = min(1.0, d_desktop / max(0.1, last_rel_end))
+    phone_ring_time = d_intro + 40.0
     for sid in desk_ids:
-        offsets.append((sid, cur, seg_text_map[sid]))
+        desired = d_intro + 0.2 + rel_starts[sid] * stretch
         if sid == "06_case1_call":
-            phone_ring_time = cur + 2.2
-        cur += (durations[sid] + 0.36) * scale
+            phone_ring_time = max(desired, (placed_cues[-1][2] + 0.18)) + 2.2
+        place_segment(sid, desired)
 
-    offsets.append(("10_mobile", intro_dur + desktop_dur + 0.2, seg_text_map["10_mobile"]))
-    offsets.append(("11_kiro_outro", intro_dur + desktop_dur + mobile_dur + 0.25, seg_text_map["11_kiro_outro"]))
+    # Scene 3: Mobile & Scene 4: Outro (anchored to true concatenated offsets!)
+    place_segment("10_mobile", d_intro + d_desktop + 0.25)
+    place_segment("11_kiro_outro", d_intro + d_desktop + d_mobile + 0.35)
+
+    # Guarantee total_dur covers final cue cleanly
+    final_cue_end = placed_cues[-1][2]
+    print(f"  [sync] total_video={total_dur:.2f}s | final_cue_end={final_cue_end:.2f}s | cues={len(placed_cues)}")
 
     voice_wav = WORK_DIR / "voice_full.wav"
     amb_wav = WORK_DIR / "ambient_bed.wav"
     ass_path = WORK_DIR / "subtitles.ass"
-    build_voice_and_subtitles(narration, offsets, total_dur, voice_wav, ass_path)
+    assemble_exact_voice_and_subtitles(placed_cues, total_dur, voice_wav, ass_path)
     generate_ambient_bed(total_dur, phone_ring_time, amb_wav)
 
-    print("Step 5/5: Mastering final subtitled YouTube 720p H.264 + AAC stereo MP4...")
+    print("Step 5/5: Mastering final YouTube 720p H.264 + AAC stereo MP4 (exact subtitle burn)...")
     ass_escaped = ass_path.as_posix().replace(":", r"\:")
     run_cmd([
         "ffmpeg", "-y",
@@ -952,9 +1031,9 @@ def main() -> None:
 
     final_dur = probe_duration(OUT_MP4)
     size_mb = OUT_MP4.stat().st_size / (1024 * 1024)
-    print(f"\nDONE! Produced YouTube-ready demo video:")
+    print(f"\nDONE! Produced 0.00s-drift YouTube demo video:")
     print(f"  Video:     {OUT_MP4} ({final_dur:.1f}s / {size_mb:.2f} MB)")
-    print(f"  Captions:  {OUT_SRT}")
+    print(f"  Captions:  {OUT_SRT} ({len(placed_cues)} exact cues, ends {final_cue_end:.1f}s <= {final_dur:.1f}s)")
     print(f"  Thumbnail: {OUT_THUMB}")
 
 
