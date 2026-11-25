@@ -2,6 +2,7 @@
 
 > **Kiroween 2026 — Costume Contest Entry**  
 > **Live Demo:** https://pakorn269.github.io/night-shift-help-desk/  
+> **Demo Video (2m 07s):** https://youtu.be/iKEAG_p1iWA  
 > *You are the only analyst on the night shift. A workstation powered on by itself at 03:00. Your audit log says you closed the ticket at 03:07. It is still 03:00.*
 
 **Night Shift Help Desk** is a browser-based psychological horror game disguised as **Halcyon Desk // ITSM v4.2**—a hauntingly authentic midnight enterprise service console whose interface quietly turns against you. Instead of pasting Halloween clip art over a generic web app, **the workplace software itself is the costume and the horror**: clocks drift seven minutes forward, phantom tickets ring from your own VoIP extension, CCTV pixel feeds reveal someone sitting at your desk, and your own analyst badge splits into two silhouettes.

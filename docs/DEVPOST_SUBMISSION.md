@@ -6,6 +6,7 @@
 ## Live Links
 - **Live Playable App**: https://pakorn269.github.io/night-shift-help-desk/
 - **Public GitHub Repository (MIT + `.kiro/`)**: https://github.com/pakorn269/night-shift-help-desk
+- **Public YouTube Demo (`2m 07s`)**: https://youtu.be/iKEAG_p1iWA
 
 ## Tagline
 A browser horror game disguised as an enterprise IT help desk console where impossible timestamps, live pixel CCTV feeds, and your own audit trail quietly turn against you.
@@ -76,5 +77,53 @@ Local deliverables ready for YouTube Studio upload (in gitignored `demo/` folder
 - [x] Create a **public GitHub repository** (`https://github.com/pakorn269/night-shift-help-desk`) and push — confirmed **MIT License** detected by GitHub API and repo visibility `public`.
 - [x] Run locked Linux CI (`npm ci && npm test && npm run build`) and deploy `dist/` automatically to **GitHub Pages** (`https://pakorn269.github.io/night-shift-help-desk/`), verified end-to-end in live browser with HTTP `200` on all sprites and `0` console errors.
 - [x] Record `<3 min` subtitled HD demo video (`2m 07s`, Google Cloud Chirp 3 HD per-cue synced voiceover), synced `.srt` captions, and `1280×720` thumbnail locally in `demo/`.
-- [ ] Upload `demo/night-shift-help-desk-kiroween-demo.mp4` (plus `youtube-thumbnail.png` and `.srt`) to YouTube as **Public**.
+- [x] Upload demo video to YouTube as **Public** — live at https://youtu.be/iKEAG_p1iWA.
 - [ ] Submit repo URL, live app URL, YouTube video URL, and Costume Contest write-up on [kiroween.devpost.com](https://kiroween.devpost.com/).
+
+---
+
+## Copy-Paste Devpost Submission Form Fields
+
+- **Project Name**: `Night Shift Help Desk`
+- **Tagline**: `A browser horror game disguised as an enterprise IT help desk console where impossible timestamps, live pixel CCTV feeds, and your own audit trail quietly turn against you.`
+- **Category**: `Costume Contest`
+- **Built With**: `kiro`, `typescript`, `vite`, `html5`, `css3`, `web-audio-api`, `piskel-mcp`, `vitest`, `fast-check`, `github-actions`, `github-pages`
+- **Try it out links**:
+  - `https://pakorn269.github.io/night-shift-help-desk/`
+  - `https://github.com/pakorn269/night-shift-help-desk`
+- **Video Demo link**: `https://youtu.be/iKEAG_p1iWA`
+
+### Devpost "About the Project" Markdown (Ready to Paste)
+
+```markdown
+## Inspiration
+Most spooky web demos glue Halloween clip art on top of a normal dashboard. We wanted to flip that idea for **Costume Contest**: make ordinary enterprise IT service-desk software feel so credible that a single impossible timestamp—a `03:07` ticket closure under your own analyst name while the console clock still reads `03:00`—creates genuine dread before anything visibly supernatural happens.
+
+## What it does
+**Night Shift Help Desk** disguises a 3-case, 4-ending psychological horror game inside **Halcyon Desk // ITSM v4.2**:
+- **Shift Check-In & Personalization**: Clock in at `03:00` with your own Analyst Handle so **your name** appears on impossible future closures, VoIP transcripts, and shift endings.
+- **Case 1 (`INC-0300`, `03:00`)**: Inspect the forensic audit trail to uncover your own `03:07` closure. Comply and the console clock jumps to `03:07`, duplicate closures appear, and your steaming coffee mug pixel sprite freezes cold. Defy and the log vanishes, phantom ticket `INC-0419` injects into your live queue, and your VoIP desk handset rings from your own extension (`Ext. 419`)—which you can pick up (`[P]`) to uncover a chilling loopback transcript.
+- **Case 2 (`INC-0314`, `03:14`) & Case 3 (`INC-0321`, `03:21`)**: Your RFID badge unlocks an empty North Stairwell while still on your desk, your prior choices appear pre-dated at `02:55`, your ID badge splits into two silhouettes, and the live ceiling camera behind Desk B-04 reveals someone sitting in your chair.
+- **6× Forensic CCTV Zoom & 4 Persistent Endings**: Click any live pixel camera (`[Z]`) for 6× nearest-neighbor inspection, unlock all 4 persistent endings (*The Quiet Shift*, *Extension 419*, *Split Session*, *Audit Exception*), and export a shareable Shift Report card.
+
+## How we built it
+- **Kiro Workflow (`.kiro/`)**: Started with Kiro Spec-Driven Development (`.kiro/specs/first-playable-slice/requirements.md`, `design.md`, `tasks.md`), expanded with Kiro Steering Docs (`.kiro/steering/product.md`, `tech.md`, `costume-contest-ui.md`) and a Kiro Agent Hook (`.kiro/hooks/verify-on-save.kiro.hook`) that triggers automated test and build verification on source edits.
+- **Bespoke Pixel Art via Piskel MCP Server**: Authored 8 cohesive 16-color Phosphor-Noir animated sprite sheets (three `64×48` live CCTV cameras, Halcyon eye-monitor emblem, 4-frame deteriorating ID badge, ringing VoIP phone, steaming/frozen coffee mug, and 6 colorblind-safe status icons) via a reproducible Piskel MCP JSON-RPC script (`scripts/generate-piskel-sprites.mjs`) validated with automated raster QA.
+- **Zero-Framework Frontend & Procedural Web Audio**: Pure TypeScript strict discriminated-union FSM (`src/state.ts`), centralized narrative tables (`src/content.ts`), crash-safe `localStorage` ending tracking (`src/storage.ts`), proportional reduced-motion-safe game feel (`src/juice.ts`), and a zero-asset Web Audio API bus mixer (`Master ← {Ambience, SFX, UI}`) with squared slider-to-gain volume curves and adaptive vertical dread layering (`src/audio.ts`).
+- **Testing & Linux CI**: 35 Vitest unit, DOM, integration, and `fast-check` property-based tests run on every push in GitHub Actions (`.github/workflows/deploy.yml`) before auto-deploying the ~24 kB gzipped bundle to GitHub Pages.
+
+## Challenges we ran into
+- Keeping every horror beat effective with **zero jump scares, zero strobing flashes, zero audio-only clues, and zero color-only indicators** while preserving a clean `360px` mobile-first layout.
+- Ensuring pixel art sprite strips animate with pixel-exact `step-end` CSS keyframes and load cleanly across both root hosts and subpath GitHub Pages URLs (`vite.config.ts` `base: './'`).
+
+## Accomplishments that we're proud of
+- Turning subtle UI deterioration (`data-dread="0..3"`), custom Piskel pixel art, and adaptive room-tone audio into a complete, replayable 3–5 minute horror experience in ~24 kB gzipped JavaScript/CSS/HTML.
+- Achieving 100% passing property-based and integration tests across all 4 endings and zero console/network errors on the live public deployment.
+
+## What we learned
+- Kiro specs + steering docs keep visual craft, accessibility guardrails, and pure state invariants tightly aligned even across rapid feature expansion.
+- Treating pixel art and UI CSS tokens as one locked 16-color palette makes animated sprites feel genuinely native inside enterprise software chrome.
+
+## What's next
+- Adding an optional Night 2 escalation queue with community-authored custom incident JSON packs and localization support leveraging our centralized `src/content.ts` string tables.
+```
