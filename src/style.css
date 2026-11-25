@@ -1,0 +1,274 @@
+/* Mobile-first responsive design with dark theme */
+/* Base styles: 0-359px */
+
+:root {
+  /* Dark theme color palette */
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #1a1a1a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --text-muted: #707070;
+  --border: #333333;
+  --accent: #4a9eff;
+  --accent-hover: #6bb0ff;
+  --danger: #ff4a4a;
+  --danger-hover: #ff6b6b;
+  
+  /* Typography */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Courier New', Courier, monospace;
+  
+  /* Spacing */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  margin: 0;
+  padding: var(--spacing-md);
+}
+
+main {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Header and clock */
+header {
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.clock {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Ticket section */
+.ticket {
+  background-color: var(--bg-secondary);
+  padding: var(--spacing-md);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  margin-bottom: var(--spacing-lg);
+}
+
+.ticket h2 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
+}
+
+.ticket-description {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-secondary);
+}
+
+.ticket-meta {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Audit trail */
+.audit-trail {
+  background-color: var(--bg-secondary);
+  padding: var(--spacing-md);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  margin-bottom: var(--spacing-lg);
+}
+
+.audit-trail h2 {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-secondary);
+}
+
+.audit-trail ul {
+  list-style: none;
+  padding: 0;
+}
+
+.audit-trail li {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.audit-trail li:last-child {
+  border-bottom: none;
+}
+
+/* Controls section */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Buttons */
+button {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  width: 100%;
+}
+
+button:hover:not(:disabled) {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-primary);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+#close-button:hover:not(:disabled) {
+  background-color: var(--danger);
+  border-color: var(--danger);
+  color: var(--bg-primary);
+}
+
+#call-button:hover:not(:disabled) {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-primary);
+}
+
+/* Ending sections */
+.ending {
+  background-color: var(--bg-secondary);
+  padding: var(--spacing-md);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  margin-bottom: var(--spacing-lg);
+}
+
+.ending h2 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
+}
+
+.ending p {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Responsive breakpoints */
+
+/* Small screens: 360px+ */
+@media (min-width: 360px) {
+  body {
+    padding: var(--spacing-lg);
+  }
+  
+  h1 {
+    font-size: 22px;
+  }
+  
+  .clock {
+    font-size: 28px;
+  }
+}
+
+/* Medium screens: 768px+ */
+@media (min-width: 768px) {
+  body {
+    padding: var(--spacing-xl);
+    font-size: 18px;
+  }
+  
+  h1 {
+    font-size: 24px;
+  }
+  
+  .clock {
+    font-size: 32px;
+  }
+  
+  .ticket h2,
+  .ending h2 {
+    font-size: 20px;
+  }
+  
+  .controls {
+    flex-direction: row;
+  }
+  
+  button {
+    font-size: 18px;
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+}
+
+/* Large screens: 1024px+ */
+@media (min-width: 1024px) {
+  main {
+    max-width: 800px;
+  }
+  
+  body {
+    padding: var(--spacing-xl);
+  }
+  
+  header {
+    margin-bottom: var(--spacing-xl);
+  }
+  
+  .ticket,
+  .audit-trail,
+  .ending {
+    padding: var(--spacing-lg);
+  }
+}
+
+/* Hidden attribute support */
+[hidden] {
+  display: none !important;
+}

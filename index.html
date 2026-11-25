@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Night Shift Help Desk</title>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Night Shift Help Desk</h1>
+        <div class="clock" id="clock" aria-live="polite">03:00</div>
+      </header>
+      
+      <section class="ticket" id="ticket-section">
+        <h2 id="ticket-title"></h2>
+        <p class="ticket-description" id="ticket-description"></p>
+        <p class="ticket-meta" id="ticket-meta"></p>
+        <button id="inspect-button" type="button">Inspect Audit Trail</button>
+      </section>
+      
+      <section class="audit-trail" id="audit-trail" hidden>
+        <h2>Audit Trail</h2>
+        <ul id="audit-list" role="list">
+          <!-- Entries inserted dynamically -->
+        </ul>
+      </section>
+      
+      <section class="controls" id="controls">
+        <button id="close-button" type="button" disabled>Close as Resolved</button>
+        <button id="call-button" type="button" disabled>Call Requester</button>
+      </section>
+      
+      <section class="ending" id="close-ending" hidden>
+        <h2 id="close-ending-title"></h2>
+        <p id="close-ending-body"></p>
+        <button id="close-replay-button" type="button">Replay</button>
+      </section>
+      
+      <section class="ending" id="call-ending" hidden>
+        <h2 id="call-ending-title"></h2>
+        <p id="call-ending-body"></p>
+        <button id="call-replay-button" type="button">Replay</button>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

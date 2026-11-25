@@ -1,0 +1,320 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Scaffold Vite + TypeScript project structure": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578322606
+      },
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578334594
+      },
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578581342
+      }
+    ],
+    "2.1 Define GameState discriminated union type": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578322905
+      },
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578585919
+      },
+      {
+        "executionId": "a87bddeb-dd7b-43e3-9cd5-fe0570a27cdd",
+        "chatSessionId": "sess_217b52c4-514a-4313-9552-0498c1e67314",
+        "timestamp": 1795578732442
+      },
+      {
+        "executionId": "a87bddeb-dd7b-43e3-9cd5-fe0570a27cdd",
+        "chatSessionId": "sess_217b52c4-514a-4313-9552-0498c1e67314",
+        "timestamp": 1795578732704
+      },
+      {
+        "executionId": "a87bddeb-dd7b-43e3-9cd5-fe0570a27cdd",
+        "chatSessionId": "sess_217b52c4-514a-4313-9552-0498c1e67314",
+        "timestamp": 1795578740930
+      }
+    ],
+    "2.2 Implement state transition functions": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578323046
+      }
+    ],
+    "3.1 Define and export ticket content": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578323298
+      },
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578586186
+      },
+      {
+        "executionId": "a87bddeb-dd7b-43e3-9cd5-fe0570a27cdd",
+        "chatSessionId": "sess_217b52c4-514a-4313-9552-0498c1e67314",
+        "timestamp": 1795578732538
+      },
+      {
+        "executionId": "a87bddeb-dd7b-43e3-9cd5-fe0570a27cdd",
+        "chatSessionId": "sess_217b52c4-514a-4313-9552-0498c1e67314",
+        "timestamp": 1795578732837
+      },
+      {
+        "executionId": "a87bddeb-dd7b-43e3-9cd5-fe0570a27cdd",
+        "chatSessionId": "sess_217b52c4-514a-4313-9552-0498c1e67314",
+        "timestamp": 1795578741488
+      }
+    ],
+    "3.2 Define and export ending content": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578323649
+      },
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578586652
+      },
+      {
+        "executionId": "a87bddeb-dd7b-43e3-9cd5-fe0570a27cdd",
+        "chatSessionId": "sess_217b52c4-514a-4313-9552-0498c1e67314",
+        "timestamp": 1795578732621
+      },
+      {
+        "executionId": "a87bddeb-dd7b-43e3-9cd5-fe0570a27cdd",
+        "chatSessionId": "sess_217b52c4-514a-4313-9552-0498c1e67314",
+        "timestamp": 1795578732921
+      },
+      {
+        "executionId": "a87bddeb-dd7b-43e3-9cd5-fe0570a27cdd",
+        "chatSessionId": "sess_217b52c4-514a-4313-9552-0498c1e67314",
+        "timestamp": 1795578741852
+      }
+    ],
+    "4. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578323756
+      }
+    ],
+    "5.1 Create semantic HTML with accessibility attributes": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578323860
+      }
+    ],
+    "6.1 Implement DOM element query and validation": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578323987
+      }
+    ],
+    "6.2 Implement clock rendering": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578324101
+      }
+    ],
+    "6.3 Implement audit trail rendering": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578324202
+      }
+    ],
+    "6.4 Implement control rendering": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578324320
+      }
+    ],
+    "6.5 Implement ending rendering": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578324430
+      }
+    ],
+    "6.6 Implement main render function": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578324541
+      }
+    ],
+    "7. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578324640
+      }
+    ],
+    "8.1 Implement focus management": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578324737
+      }
+    ],
+    "8.2 Implement keyboard event handlers": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578324840
+      }
+    ],
+    "9.1 Wire initialization and event handlers": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578324951
+      }
+    ],
+    "9.2 Add DOMContentLoaded listener": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578325054
+      }
+    ],
+    "10. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578325155
+      }
+    ],
+    "11.1 Create mobile-first base styles": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578325257
+      }
+    ],
+    "11.2 Style header and clock": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578325351
+      }
+    ],
+    "11.3 Style ticket section": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578325453
+      }
+    ],
+    "11.4 Style audit trail section": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578325552
+      }
+    ],
+    "11.5 Style decision controls": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578325637
+      }
+    ],
+    "11.6 Style ending sections": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578325721
+      }
+    ],
+    "11.7 Add responsive breakpoints": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578325805
+      }
+    ],
+    "11.8 Import styles in main.ts": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578325886
+      }
+    ],
+    "12.1 Run production build": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578325973
+      }
+    ],
+    "12.2 Run test suite": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578326110
+      }
+    ],
+    "13.1 Perform keyboard navigation testing": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578326223
+      }
+    ],
+    "13.2 Test responsive layout": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578326320
+      }
+    ],
+    "13.3 Test both decision paths": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578326420
+      }
+    ],
+    "13.4 Test screen reader compatibility (Chrome + screen reader)": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578326518
+      }
+    ],
+    "13.5 Browser compatibility verification": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578326613
+      }
+    ],
+    "14. Final checkpoint - Production readiness": [
+      {
+        "executionId": "9cae9ad9-52f9-4f22-9f85-c55e95c9158d",
+        "chatSessionId": "sess_42314974-078e-43e6-8065-aabba229920e",
+        "timestamp": 1795578326708
+      }
+    ]
+  }
+}
