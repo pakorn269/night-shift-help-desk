@@ -2,48 +2,438 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Night Shift Help Desk</title>
+    <meta
+      name="description"
+      content="Night Shift Help Desk — A haunting enterprise ITSM browser horror game built for Kiroween 2026 Costume Contest."
+    />
+    <title>Night Shift Help Desk — Halcyon Desk v4.2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <main>
-      <header>
-        <h1>Night Shift Help Desk</h1>
-        <div class="clock" id="clock" aria-live="polite">03:00</div>
+    <div id="phosphor-veil" class="phosphor-veil" aria-hidden="true"></div>
+    <div class="crt-scanlines" aria-hidden="true"></div>
+    <div id="sr-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Night Shift Check-In Overlay (unlocks procedural Web Audio & personalizes Analyst Handle) -->
+    <div
+      id="checkin-modal"
+      class="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="checkin-title"
+    >
+      <div class="modal-card checkin-card">
+        <div class="checkin-top">
+          <div id="checkin-logo-sprite" class="sprite-brand sprite-brand-lg" aria-hidden="true"></div>
+          <div>
+            <div class="checkin-eyebrow">HALCYON DESK // ITSM v4.2</div>
+            <h2 id="checkin-title" class="checkin-title">Night Shift Check-In</h2>
+          </div>
+        </div>
+        <p class="checkin-lead">
+          You are the sole analyst scheduled on Floor 4 tonight (<strong>03:00 – 07:00</strong>).
+          Three incidents are waiting in your queue. Your analyst name will be written into every
+          audit log.
+        </p>
+
+        <form id="checkin-form" class="checkin-form">
+          <label for="checkin-name-input" class="checkin-label">ANALYST HANDLE (DESK-B04 · EXT. 419)</label>
+          <input
+            id="checkin-name-input"
+            class="checkin-input"
+            type="text"
+            maxlength="24"
+            value="A. Mercer"
+            autocomplete="off"
+            placeholder="A. Mercer"
+          />
+
+          <label class="checkin-checkbox">
+            <input id="checkin-audio-toggle" type="checkbox" checked />
+            <span>Enable subtle ambient room tone &amp; console audio (optional; zero audio-only clues)</span>
+          </label>
+
+          <button id="checkin-submit-btn" class="btn btn-primary checkin-submit" type="submit">
+            Clock In — 03:00
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Live CCTV Forensic Zoom Modal -->
+    <div
+      id="cctv-modal"
+      class="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cctv-modal-title"
+      hidden
+    >
+      <div class="modal-card cctv-modal-card">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <h2 id="cctv-modal-title" class="panel-title">CAM-B3-204 // FORENSIC ZOOM</h2>
+            <span id="cctv-modal-status" class="cctv-status" data-mode="idle">LIVE // NOMINAL</span>
+          </div>
+          <button id="cctv-modal-close" class="util-btn" type="button" aria-label="Close CCTV Inspector">
+            Close [ESC]
+          </button>
+        </div>
+
+        <div class="cctv-modal-stage">
+          <div id="cctv-modal-sprite" class="sprite-cctv sprite-cctv-zoom" data-mode="idle"></div>
+        </div>
+
+        <div class="cctv-modal-meta">
+          <span id="cctv-modal-location" class="cctv-location">Building 3, Floor 2</span>
+          <span id="cctv-modal-telemetry" class="cctv-telemetry">RES: 64×48 · 6× NEAREST · GAIN +12dB</span>
+        </div>
+        <p id="cctv-modal-caption" class="cctv-caption"></p>
+      </div>
+    </div>
+
+    <div id="console-shell" class="console-shell" data-dread="0" data-phase="initial">
+      <!-- Top Enterprise Console Bar -->
+      <header class="console-header">
+        <div class="brand-cluster">
+          <div
+            id="brand-logo-sprite"
+            class="sprite-brand"
+            role="img"
+            aria-label="Halcyon Desk Monitor Emblem"
+            data-dread="0"
+          ></div>
+          <div class="brand-copy">
+            <h1>Night Shift Help Desk</h1>
+            <p class="brand-sub">HALCYON DESK // ITSM v4.2 · SOLO COVERAGE</p>
+          </div>
+        </div>
+
+        <div class="clock-module">
+          <img
+            src="./sprites/icons/icon-clock.png"
+            alt=""
+            width="24"
+            height="24"
+            class="pixel-icon clock-icon"
+          />
+          <div class="clock-readout-wrap">
+            <div class="clock" id="clock" aria-live="polite">03:00</div>
+            <span id="ntp-badge" class="ntp-badge" data-dread="0">NTP: SYNCED</span>
+          </div>
+        </div>
+
+        <div class="analyst-cluster">
+          <div class="analyst-card">
+            <div
+              id="analyst-badge-sprite"
+              class="sprite-badge"
+              role="img"
+              aria-label="Analyst ID Badge"
+              data-dread="0"
+            ></div>
+            <div class="analyst-fields">
+              <label for="analyst-name-input" class="sr-only">Analyst Name</label>
+              <input
+                id="analyst-name-input"
+                class="analyst-input"
+                type="text"
+                maxlength="24"
+                value="A. Mercer"
+                aria-label="Analyst Name (click to personalize)"
+                title="Personalize your analyst name"
+              />
+              <span id="analyst-meta" class="analyst-meta">DESK-B04 · Ext. 419</span>
+            </div>
+          </div>
+
+          <div class="utility-controls" role="group" aria-label="Audio and motion settings">
+            <button id="mute-button" class="util-btn" type="button" aria-pressed="false" title="Toggle Audio [M]">
+              Audio: ON
+            </button>
+            <label for="volume-slider" class="sr-only">Master Volume</label>
+            <input
+              id="volume-slider"
+              class="volume-slider"
+              type="range"
+              min="0"
+              max="100"
+              value="65"
+              aria-label="Master Volume"
+            />
+            <button id="motion-button" class="util-btn" type="button" aria-pressed="false" title="Toggle Reduced Motion">
+              Calm: OFF
+            </button>
+          </div>
+        </div>
       </header>
-      
-      <section class="ticket" id="ticket-section">
-        <h2 id="ticket-title"></h2>
-        <p class="ticket-description" id="ticket-description"></p>
-        <p class="ticket-meta" id="ticket-meta"></p>
-        <button id="inspect-button" type="button">Inspect Audit Trail</button>
-      </section>
-      
-      <section class="audit-trail" id="audit-trail" hidden>
-        <h2>Audit Trail</h2>
-        <ul id="audit-list" role="list">
-          <!-- Entries inserted dynamically -->
-        </ul>
-      </section>
-      
-      <section class="controls" id="controls">
-        <button id="close-button" type="button" disabled>Close as Resolved</button>
-        <button id="call-button" type="button" disabled>Call Requester</button>
-      </section>
-      
-      <section class="ending" id="close-ending" hidden>
-        <h2 id="close-ending-title"></h2>
-        <p id="close-ending-body"></p>
-        <button id="close-replay-button" type="button">Replay</button>
-      </section>
-      
-      <section class="ending" id="call-ending" hidden>
-        <h2 id="call-ending-title"></h2>
-        <p id="call-ending-body"></p>
-        <button id="call-replay-button" type="button">Replay</button>
-      </section>
-    </main>
+
+      <!-- Institutional System Memo Bar -->
+      <div class="memo-strip" role="status">
+        <span class="memo-dot" aria-hidden="true"></span>
+        <span id="system-memo-text">SOLO COVERAGE // Floor 4 occupancy sensor: 1 analyst scheduled.</span>
+      </div>
+
+      <!-- Main 3-Zone Enterprise Workspace -->
+      <main class="workspace-grid">
+        <!-- Left Rail: Live Ticket Queue -->
+        <aside class="queue-panel" aria-label="Night Shift Ticket Queue">
+          <div class="panel-header">
+            <h2 class="panel-title">SHIFT QUEUE</h2>
+            <span id="endings-counter" class="dossier-counter">0 / 4 ENDINGS</span>
+          </div>
+          <ul id="queue-list" class="queue-list" role="list"></ul>
+          <div class="dossier-tracker">
+            <span class="tracker-label">SHIFT DOSSIER</span>
+            <div id="endings-pips" class="dossier-pips"></div>
+          </div>
+        </aside>
+
+        <!-- Center Stage: Active Incident Workbench -->
+        <div id="workbench" class="workbench">
+          <section class="panel ticket-panel" id="ticket-section" aria-labelledby="ticket-title">
+            <div class="ticket-badges">
+              <span id="ticket-id-badge" class="pill pill-id">INC-0300 · CASE 1/3</span>
+              <span id="ticket-priority-badge" class="pill pill-priority" data-priority="P2">P2</span>
+              <span id="ticket-asset-badge" class="pill pill-asset">WKST-B3-204</span>
+              <span id="ticket-sla-badge" class="pill pill-sla">SLA: -00:07:00</span>
+            </div>
+
+            <h2 id="ticket-title" class="ticket-title">Workstation Powered On Unexpectedly</h2>
+            <p class="ticket-description" id="ticket-description"></p>
+            <p class="ticket-meta" id="ticket-meta"></p>
+
+            <div class="inspect-bar">
+              <button id="inspect-button" class="btn btn-primary" type="button">
+                Inspect Audit Trail  [I]
+              </button>
+              <span id="inspect-hint" class="inspect-hint"></span>
+            </div>
+          </section>
+
+          <!-- Forensic Audit Trail (hidden until inspected) -->
+          <section
+            class="panel audit-panel"
+            id="audit-trail"
+            aria-labelledby="audit-heading"
+            hidden
+          >
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <img
+                  src="./sprites/icons/icon-audit.png"
+                  alt=""
+                  width="20"
+                  height="20"
+                  class="pixel-icon"
+                />
+                <h2 id="audit-heading" class="panel-title">FORENSIC AUDIT TRAIL</h2>
+              </div>
+              <span id="audit-status-pill" class="audit-status-pill" data-severity="anomaly">
+                INTEGRITY MISMATCH
+              </span>
+            </div>
+            <ul id="audit-list" class="audit-list" role="list"></ul>
+          </section>
+
+          <!-- Decision Action Deck -->
+          <section class="panel controls-panel" id="controls" aria-label="Ticket Resolution Actions">
+            <div class="panel-header">
+              <h2 class="panel-title">RESOLUTION ACTION</h2>
+              <span id="controls-lock-note" class="lock-note">
+                Inspect the Audit Trail to unlock decisions
+              </span>
+            </div>
+            <div class="decision-grid">
+              <button id="close-button" class="btn btn-decision btn-comply" type="button" disabled>
+                <span class="btn-keycap" aria-hidden="true">1</span>
+                <span class="btn-text-stack">
+                  <strong id="close-button-label">Close as Resolved</strong>
+                  <small id="close-button-hint">Trust the existing 03:07 audit entry</small>
+                </span>
+              </button>
+
+              <button id="call-button" class="btn btn-decision btn-defy" type="button" disabled>
+                <span class="btn-keycap" aria-hidden="true">2</span>
+                <span class="btn-text-stack">
+                  <strong id="call-button-label">Keep Open &amp; Call Requester</strong>
+                  <small id="call-button-hint">Challenge the impossible entry</small>
+                </span>
+              </button>
+            </div>
+          </section>
+
+          <!-- Case Outcome Banner -->
+          <section
+            class="panel outcome-panel"
+            id="case-outcome"
+            aria-labelledby="outcome-title"
+            data-choice="comply"
+            hidden
+          >
+            <div class="outcome-header">
+              <img
+                id="outcome-icon"
+                src="./sprites/icons/icon-clock.png"
+                alt=""
+                width="28"
+                height="28"
+                class="pixel-icon"
+              />
+              <div>
+                <div id="outcome-code" class="outcome-code">RES-DUP-0307</div>
+                <h2 id="outcome-title" class="outcome-title">Ticket Closed</h2>
+              </div>
+            </div>
+            <p id="outcome-body" class="outcome-body"></p>
+            <p id="outcome-footnote" class="outcome-footnote"></p>
+            <div class="outcome-actions">
+              <button id="next-case-button" class="btn btn-primary" type="button">
+                Open Next Ticket: INC-0314  [N]
+              </button>
+              <button id="replay-case-button" class="btn btn-ghost" type="button">
+                Replay This Case  [R]
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <!-- Final Shift Dossier (shown after Case 3) -->
+        <section
+          id="shift-dossier"
+          class="panel dossier-panel"
+          aria-labelledby="dossier-title"
+          data-tone="compliant"
+          hidden
+        >
+          <div class="dossier-top">
+            <div>
+              <div id="dossier-numeral" class="dossier-numeral">ENDING I / IV</div>
+              <div id="dossier-code" class="dossier-code">SHIFT-00</div>
+              <h2 id="dossier-title" class="dossier-title">The Quiet Shift</h2>
+              <p id="dossier-subtitle" class="dossier-subtitle"></p>
+            </div>
+            <div class="dossier-stamp">
+              <div id="dossier-clock" class="dossier-clock">07:00</div>
+              <div id="dossier-system-tag" class="dossier-tag">STATUS: COMPLIANT</div>
+            </div>
+          </div>
+
+          <p id="dossier-summary" class="dossier-summary"></p>
+          <blockquote id="dossier-epilogue" class="dossier-epilogue"></blockquote>
+
+          <div class="dossier-section">
+            <h3 class="panel-title">SHIFT AUDIT LEDGER</h3>
+            <ul id="dossier-ledger" class="ledger-list" role="list"></ul>
+          </div>
+
+          <div class="dossier-section">
+            <h3 class="panel-title">DISCOVERED SHIFT ENDINGS</h3>
+            <div id="dossier-gallery" class="ending-gallery"></div>
+          </div>
+
+          <div class="outcome-actions">
+            <button id="shift-replay-button" class="btn btn-primary" type="button">
+              Begin New Night Shift (03:00)  [R]
+            </button>
+            <button id="copy-report-button" class="btn btn-ghost" type="button">
+              Copy Shift Report
+            </button>
+          </div>
+        </section>
+
+        <!-- Right Rail: Live Pixel CCTV & Desk Hardware Telemetry -->
+        <aside class="telemetry-panel" aria-label="Live Evidence Feed and Desk Hardware">
+          <section id="cctv-panel" class="panel cctv-card">
+            <div class="panel-header">
+              <h2 id="cctv-camera-id" class="panel-title">CAM-B3-204</h2>
+              <span id="cctv-status-pill" class="cctv-status" data-mode="idle">LIVE // NOMINAL</span>
+            </div>
+
+            <button
+              id="cctv-zoom-button"
+              class="cctv-bezel cctv-zoom-trigger"
+              type="button"
+              aria-label="Inspect enlarged live CCTV camera feed"
+              title="Click to inspect live pixel feed at 6× zoom"
+            >
+              <div
+                id="cctv-sprite"
+                class="sprite-cctv"
+                role="img"
+                aria-labelledby="cctv-caption"
+                data-mode="idle"
+              ></div>
+              <span class="cctv-zoom-pill" aria-hidden="true">ZOOM [Z]</span>
+            </button>
+
+            <div id="cctv-location" class="cctv-location">Building 3, Floor 2</div>
+            <p id="cctv-caption" class="cctv-caption"></p>
+          </section>
+
+          <section class="panel hardware-card" aria-label="Desk Hardware Status">
+            <h2 class="panel-title">DESK B-04 HARDWARE</h2>
+            <div class="hardware-grid">
+              <div class="hw-item hw-phone-item">
+                <div class="hw-row">
+                  <div
+                    id="phone-sprite"
+                    class="sprite-phone"
+                    role="img"
+                    aria-label="VoIP Desk Phone"
+                    data-state="idle"
+                  ></div>
+                  <div class="hw-copy">
+                    <span class="hw-label">VOIP HANDSET</span>
+                    <span id="phone-status" class="hw-status" data-alert="false">EXT. 419 · ON HOOK</span>
+                  </div>
+                </div>
+                <button id="phone-answer-button" class="btn-phone-answer" type="button" hidden>
+                  Answer Ext. 419  [P]
+                </button>
+                <div id="voip-transcript" class="voip-transcript" hidden>
+                  <div class="voip-transcript-head" id="voip-transcript-head"></div>
+                  <ul id="voip-transcript-lines" class="voip-transcript-lines" role="list"></ul>
+                </div>
+              </div>
+
+              <div class="hw-item">
+                <div class="hw-row">
+                  <div
+                    id="coffee-sprite"
+                    class="sprite-coffee"
+                    role="img"
+                    aria-label="Night Shift Coffee Mug"
+                    data-state="warm"
+                  ></div>
+                  <div class="hw-copy">
+                    <span class="hw-label">DESK TRAY</span>
+                    <span id="coffee-status" class="hw-status" data-alert="false">MUG · WARM</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="shortcuts-legend" aria-label="Keyboard Shortcuts">
+            <span><kbd>I</kbd> Inspect</span>
+            <span><kbd>1</kbd>/<kbd>2</kbd> Decide</span>
+            <span><kbd>Z</kbd> Zoom</span>
+            <span><kbd>N</kbd> Next</span>
+            <span><kbd>R</kbd> Replay</span>
+            <span><kbd>M</kbd> Mute</span>
+          </div>
+        </aside>
+      </main>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

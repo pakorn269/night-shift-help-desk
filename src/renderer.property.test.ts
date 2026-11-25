@@ -1,188 +1,110 @@
 /**
- * Property-based tests for renderer
+ * Property-based tests for DOM renderer invariants.
  */
 import { describe, test, beforeEach } from 'vitest'
 import fc from 'fast-check'
-import { render, getElements } from './renderer'
-import { initialState, inspectAudit, closeTicket, callRequester } from './state'
+import { getElements, render } from './renderer'
+import {
+  advanceCase,
+  callRequester,
+  closeTicket,
+  initialState,
+  inspectAudit,
+  resolveCase,
+} from './state'
+import { mountConsoleDOM } from './test-dom'
+import type { ChoiceKey } from './types'
 
-describe('Renderer Property Tests', () => {
+const safeNameArb = fc
+  .stringMatching(/^[A-Za-z][A-Za-z0-9 ._-]{1,14}$/)
+  .filter((s) => s.trim().length >= 2)
+const choiceArb = fc.constantFrom<ChoiceKey>('comply', 'defy')
+
+describe('Renderer Property-Based Tests', () => {
   beforeEach(() => {
-    // Set up minimal DOM structure for testing
-    document.body.innerHTML = `
-      <main>
-        <div id="clock"></div>
-        <div id="ticket-section"></div>
-        <div id="ticket-title"></div>
-        <div id="ticket-description"></div>
-        <div id="ticket-meta"></div>
-        <div id="audit-trail"></div>
-        <ul id="audit-list"></ul>
-        <button id="inspect-button"></button>
-        <button id="close-button"></button>
-        <button id="call-button"></button>
-        <div id="close-ending"></div>
-        <div id="close-ending-title"></div>
-        <div id="close-ending-body"></div>
-        <div id="call-ending"></div>
-        <div id="call-ending-title"></div>
-        <div id="call-ending-body"></div>
-        <button id="close-replay-button"></button>
-        <button id="call-replay-button"></button>
-      </main>
-    `
+    mountConsoleDOM()
   })
 
-  describe('Property 2: Inspect Transition Reveals Audit Trail', () => {
-    test('inspecting from initial state always reveals audit trail with one 03:07 entry', () => {
-      fc.assert(
-        fc.property(fc.constant(null), () => {
-          const elements = getElements()
-          const state = initialState()
-          const inspected = inspectAudit(state)
-          render(inspected, elements)
-          
-          // Verify audit trail is visible
-          if (elements.auditTrail.hidden) return false
-          
-          // Verify exactly one entry
-          if (elements.auditList.children.length !== 1) return false
-          
-          // Verify entry contains 03:07 timestamp
-          const entry = elements.auditList.children[0]
-          return entry.textContent?.includes('03:07') === true
-        }),
-        { numRuns: 100 }
-      )
-    })
+  test('Property 4: Case 1 inspect always reveals 03:07 timestamp and custom analyst name', () => {
+    fc.assert(
+      fc.property(safeNameArb, (name) => {
+        const els = getElements()
+        const inspected = inspectAudit(initialState(name))
+        render(inspected, els)
+
+        if (els.auditTrail.hidden) return false
+        if (els.auditList.children.length !== 1) return false
+        const rowText = els.auditList.children[0].textContent ?? ''
+        return (
+          rowText.includes('03:07') &&
+          rowText.includes(name.trim()) &&
+          !els.closeButton.disabled &&
+          !els.callButton.disabled
+        )
+      }),
+      { numRuns: 50 },
+    )
   })
 
-  describe('Property 3: Audit-Inspected State Enables Both Decision Controls', () => {
-    test('rendering audit-inspected state always enables both decision buttons', () => {
-      fc.assert(
-        fc.property(fc.constant(null), () => {
-          const elements = getElements()
-          const state = { phase: 'audit-inspected' as const }
-          render(state, elements)
-          
-          // Both decision buttons should be enabled
-          if (elements.closeButton.disabled) return false
-          if (elements.callButton.disabled) return false
-          
-          // Inspect button should be disabled
-          if (!elements.inspectButton.disabled) return false
-          
-          return true
-        }),
-        { numRuns: 100 }
-      )
-    })
+  test('Property 5: Case 1 close always jumps clock to 03:07 with duplicate entries', () => {
+    fc.assert(
+      fc.property(safeNameArb, (name) => {
+        const els = getElements()
+        const closed = closeTicket(inspectAudit(initialState(name)))
+        render(closed, els)
+
+        if (els.clock.textContent !== '03:07') return false
+        if (els.auditList.children.length !== 2) return false
+        if (els.coffeeSprite.dataset.state !== 'frozen') return false
+        return (
+          (els.auditList.children[0].textContent ?? '').includes('03:07') &&
+          (els.auditList.children[1].textContent ?? '').includes('03:07')
+        )
+      }),
+      { numRuns: 50 },
+    )
   })
 
-  describe('Property 4: Close Decision Produces Supernatural Effects', () => {
-    test('closing ticket from audit-inspected always produces clock jump and duplicate entries', () => {
-      fc.assert(
-        fc.property(fc.constant(null), () => {
-          const elements = getElements()
-          const state = { phase: 'audit-inspected' as const }
-          const closed = closeTicket(state)
-          render(closed, elements)
-          
-          // Clock should display 03:07
-          if (elements.clock.textContent !== '03:07') return false
-          
-          // Audit list should contain exactly two entries
-          if (elements.auditList.children.length !== 2) return false
-          
-          // Both entries should be timestamped 03:07
-          const entry1 = elements.auditList.children[0]
-          const entry2 = elements.auditList.children[1]
-          if (!entry1.textContent?.includes('03:07')) return false
-          if (!entry2.textContent?.includes('03:07')) return false
-          
-          return true
-        }),
-        { numRuns: 100 }
-      )
-    })
+  test('Property 6: Case 1 call always removes 03:07 closure, adds phantom queue item, and rings phone', () => {
+    fc.assert(
+      fc.property(safeNameArb, (name) => {
+        const els = getElements()
+        const called = callRequester(inspectAudit(initialState(name)))
+        render(called, els)
+
+        if (els.clock.textContent !== '03:00') return false
+        if (els.auditList.children.length !== 1) return false
+        const text = els.auditList.children[0].textContent ?? ''
+        return (
+          !text.includes('Closed by') &&
+          text.includes('03:00') &&
+          text.includes('New ticket from your extension') &&
+          els.phoneSprite.dataset.state === 'ringing' &&
+          els.queueList.children.length === 4
+        )
+      }),
+      { numRuns: 50 },
+    )
   })
 
-  describe('Property 5: Call Decision Removes Original Audit Entry', () => {
-    test('calling requester from audit-inspected always removes 03:07 entry and adds new ticket', () => {
-      fc.assert(
-        fc.property(fc.constant(null), () => {
-          const elements = getElements()
-          const state = { phase: 'audit-inspected' as const }
-          const called = callRequester(state)
-          render(called, elements)
-          
-          // Should have exactly one entry
-          if (elements.auditList.children.length !== 1) return false
-          
-          const entry = elements.auditList.children[0]
-          const entryText = entry.textContent || ''
-          
-          // Should NOT contain 03:07 closure entry
-          if (entryText.includes('Closed by [Analyst Name]')) return false
-          
-          // Should contain 03:00 new ticket entry
-          if (!entryText.includes('03:00')) return false
-          if (!entryText.includes('New ticket from your extension')) return false
-          
-          return true
-        }),
-        { numRuns: 100 }
-      )
-    })
-  })
+  test('Property 7: Every completed 3-case path renders Shift Dossier and hides Workbench', () => {
+    fc.assert(
+      fc.property(choiceArb, choiceArb, choiceArb, (c1, c2, c3) => {
+        const els = getElements()
+        let s = initialState('A. Mercer')
+        s = advanceCase(resolveCase(inspectAudit(s), c1))
+        s = advanceCase(resolveCase(inspectAudit(s), c2))
+        s = advanceCase(resolveCase(inspectAudit(s), c3))
+        render(s, els)
 
-  describe('Property 6: Resolved-Close State Shows Ending and Disables Decisions', () => {
-    test('resolved-close state always shows close ending and disables decision buttons', () => {
-      fc.assert(
-        fc.property(fc.integer({ min: 0, max: Date.now() }), (timestamp) => {
-          const elements = getElements()
-          const state = { phase: 'resolved-close' as const, firstClosureTimestamp: timestamp }
-          render(state, elements)
-          
-          // Close ending should be visible
-          if (elements.closeEnding.hidden) return false
-          
-          // Call ending should be hidden
-          if (!elements.callEnding.hidden) return false
-          
-          // Both decision buttons should be disabled
-          if (!elements.closeButton.disabled) return false
-          if (!elements.callButton.disabled) return false
-          
-          return true
-        }),
-        { numRuns: 100 }
-      )
-    })
-  })
-
-  describe('Property 7: Resolved-Call State Shows Ending and Disables Decisions', () => {
-    test('resolved-call state always shows call ending and disables decision buttons', () => {
-      fc.assert(
-        fc.property(fc.constant(null), () => {
-          const elements = getElements()
-          const state = { phase: 'resolved-call' as const }
-          render(state, elements)
-          
-          // Call ending should be visible
-          if (elements.callEnding.hidden) return false
-          
-          // Close ending should be hidden
-          if (!elements.closeEnding.hidden) return false
-          
-          // Both decision buttons should be disabled
-          if (!elements.closeButton.disabled) return false
-          if (!elements.callButton.disabled) return false
-          
-          return true
-        }),
-        { numRuns: 100 }
-      )
-    })
+        return (
+          els.workbench.hidden &&
+          !els.shiftDossier.hidden &&
+          els.dossierLedger.children.length === 3 &&
+          els.dossierGallery.children.length === 4
+        )
+      }),
+      { numRuns: 40 },
+    )
   })
 })

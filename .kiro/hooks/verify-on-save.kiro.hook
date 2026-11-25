@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "name": "Verify State & Build on Source Save",
+  "description": "Runs Vitest unit/property tests and strict TypeScript Vite build whenever core game source files change.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.ts",
+      "src/**/*.css",
+      "index.html"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run `npm test` and `npm run build` to verify that all state machine invariants, property tests, and TypeScript strict checks still pass after the recent edit."
+  }
+}

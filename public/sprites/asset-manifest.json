@@ -1,0 +1,90 @@
+{
+  "project": "Night Shift Help Desk",
+  "artDirectionBrief": "docs/art-direction-brief.md",
+  "paletteSize": 16,
+  "filtering": "pixelated",
+  "authoringTool": "Piskel MCP Server (piskel)",
+  "license": "MIT",
+  "assets": [
+    {
+      "id": "halcyon-logo",
+      "path": "public/sprites/halcyon-logo.png",
+      "frameSize": "32x32",
+      "frames": 2,
+      "sheetSize": "64x32",
+      "alpha": true,
+      "role": "Brand emblem (normal monitor-eye vs watching anomaly)",
+      "status": "approved"
+    },
+    {
+      "id": "analyst-badge",
+      "path": "public/sprites/analyst-badge.png",
+      "frameSize": "32x32",
+      "frames": 4,
+      "sheetSize": "128x32",
+      "alpha": true,
+      "role": "Top-bar analyst ID badge (clean -> scan -> chromatic split -> double portrait)",
+      "status": "approved"
+    },
+    {
+      "id": "desk-phone",
+      "path": "public/sprites/desk-phone.png",
+      "frameSize": "32x32",
+      "frames": 6,
+      "sheetSize": "192x32",
+      "alpha": true,
+      "role": "VoIP desk handset widget (frames 0-1 idle, frames 2-5 ringing EXT. 419)",
+      "status": "approved"
+    },
+    {
+      "id": "coffee-mug",
+      "path": "public/sprites/coffee-mug.png",
+      "frameSize": "24x24",
+      "frames": 6,
+      "sheetSize": "144x24",
+      "alpha": true,
+      "role": "Ambient desk tray mug (frames 0-3 steaming warm, frames 4-5 frozen cold)",
+      "status": "approved"
+    },
+    {
+      "id": "status-icons",
+      "path": "public/sprites/status-icons.png",
+      "frameSize": "24x24",
+      "frames": 6,
+      "sheetSize": "144x24",
+      "alpha": true,
+      "role": "Colorblind-safe UI icon strip (ticket, audit, clock, badge, anomaly, archive)",
+      "status": "approved"
+    },
+    {
+      "id": "cctv-workstation",
+      "path": "public/sprites/cctv-workstation.png",
+      "frameSize": "64x48",
+      "frames": 8,
+      "sheetSize": "512x48",
+      "alpha": false,
+      "role": "Case 1 evidence feed CAM-B3-204 (idle dark cubicle -> self-powered CRT + reflection)",
+      "status": "approved"
+    },
+    {
+      "id": "cctv-stairwell",
+      "path": "public/sprites/cctv-stairwell.png",
+      "frameSize": "64x48",
+      "frames": 8,
+      "sheetSize": "512x48",
+      "alpha": false,
+      "role": "Case 2 evidence feed CAM-B4-STAIR-N (locked corridor -> green badge override + door ajar)",
+      "status": "approved"
+    },
+    {
+      "id": "cctv-desk-b04",
+      "path": "public/sprites/cctv-desk-b04.png",
+      "frameSize": "64x48",
+      "frames": 8,
+      "sheetSize": "512x48",
+      "alpha": false,
+      "role": "Case 3 evidence feed CAM-B4-OPS (empty desk behind you -> duplicate operator typing)",
+      "status": "approved"
+    }
+  ]
+}

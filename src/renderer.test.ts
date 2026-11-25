@@ -1,191 +1,126 @@
 /**
- * Unit tests for renderer functions
+ * Unit tests for Halcyon Desk DOM Renderer and Piskel sprite state wiring.
  */
 import { describe, test, expect, beforeEach } from 'vitest'
-import { render, getElements } from './renderer'
-import type { GameState } from './state'
+import { getElements, render, renderPreferences } from './renderer'
+import {
+  advanceCase,
+  answerPhone,
+  callRequester,
+  closeTicket,
+  initialState,
+  inspectAudit,
+  resolveCase,
+} from './state'
+import { mountConsoleDOM } from './test-dom'
 
 describe('Renderer', () => {
   beforeEach(() => {
-    // Set up minimal DOM structure for testing
-    document.body.innerHTML = `
-      <main>
-        <div id="clock"></div>
-        <div id="ticket-section"></div>
-        <div id="ticket-title"></div>
-        <div id="ticket-description"></div>
-        <div id="ticket-meta"></div>
-        <div id="audit-trail"></div>
-        <ul id="audit-list"></ul>
-        <button id="inspect-button"></button>
-        <button id="close-button"></button>
-        <button id="call-button"></button>
-        <div id="close-ending"></div>
-        <div id="close-ending-title"></div>
-        <div id="close-ending-body"></div>
-        <div id="call-ending"></div>
-        <div id="call-ending-title"></div>
-        <div id="call-ending-body"></div>
-        <button id="close-replay-button"></button>
-        <button id="call-replay-button"></button>
-      </main>
-    `
+    mountConsoleDOM()
   })
 
-  describe('getElements', () => {
-    test('queries all required elements successfully', () => {
-      const elements = getElements()
-      expect(elements.clock).toBeDefined()
-      expect(elements.auditTrail).toBeDefined()
-      expect(elements.inspectButton).toBeDefined()
-      expect(elements.closeButton).toBeDefined()
-      expect(elements.callButton).toBeDefined()
-    })
+  test('getElements queries all required elements and fails fast when missing', () => {
+    const els = getElements()
+    expect(els.clock).toBeDefined()
+    expect(els.cctvSprite).toBeDefined()
+    expect(els.phoneSprite).toBeDefined()
+    expect(els.coffeeSprite).toBeDefined()
 
-    test('throws when required element is missing', () => {
-      document.getElementById('clock')?.remove()
-      expect(() => getElements()).toThrow('Required element #clock not found')
-    })
+    document.getElementById('clock')?.remove()
+    expect(() => getElements()).toThrow('Required element #clock not found')
   })
 
-  describe('render - clock', () => {
-    test('displays 03:00 in initial state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'initial' }
-      render(state, elements)
-      expect(elements.clock.textContent).toBe('03:00')
-    })
+  test('renders initial Case 1 state cleanly (03:00, hidden audit, idle CCTV & warm coffee)', () => {
+    const els = getElements()
+    const state = initialState('A. Mercer')
+    render(state, els)
 
-    test('displays 03:00 in audit-inspected state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'audit-inspected' }
-      render(state, elements)
-      expect(elements.clock.textContent).toBe('03:00')
-    })
-
-    test('displays 03:07 in resolved-close state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'resolved-close', firstClosureTimestamp: 123456 }
-      render(state, elements)
-      expect(elements.clock.textContent).toBe('03:07')
-    })
-
-    test('displays 03:00 in resolved-call state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'resolved-call' }
-      render(state, elements)
-      expect(elements.clock.textContent).toBe('03:00')
-    })
+    expect(els.clock.textContent).toBe('03:00')
+    expect(els.auditTrail.hidden).toBe(true)
+    expect(els.inspectButton.disabled).toBe(false)
+    expect(els.closeButton.disabled).toBe(true)
+    expect(els.callButton.disabled).toBe(true)
+    expect(els.caseOutcome.hidden).toBe(true)
+    expect(els.shiftDossier.hidden).toBe(true)
+    expect(els.cctvSprite.dataset.mode).toBe('idle')
+    expect(els.coffeeSprite.dataset.state).toBe('warm')
+    expect(els.phoneSprite.dataset.state).toBe('idle')
+    expect(els.queueList.children.length).toBe(3)
   })
 
-  describe('render - audit trail', () => {
-    test('hides audit trail in initial state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'initial' }
-      render(state, elements)
-      expect(elements.auditTrail.hidden).toBe(true)
-    })
+  test('renders Case 1 audit-inspected state with custom analyst name and anomaly CCTV', () => {
+    const els = getElements()
+    const state = inspectAudit(initialState('Pakorn'))
+    render(state, els)
 
-    test('shows audit trail with one entry in audit-inspected state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'audit-inspected' }
-      render(state, elements)
-      expect(elements.auditTrail.hidden).toBe(false)
-      expect(elements.auditList.children.length).toBe(1)
-      expect(elements.auditList.children[0].textContent).toContain('03:07')
-      expect(elements.auditList.children[0].textContent).toContain('Closed by [Analyst Name]')
-    })
-
-    test('shows audit trail with two entries in resolved-close state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'resolved-close', firstClosureTimestamp: 123456 }
-      render(state, elements)
-      expect(elements.auditTrail.hidden).toBe(false)
-      expect(elements.auditList.children.length).toBe(2)
-      expect(elements.auditList.children[0].textContent).toContain('03:07')
-      expect(elements.auditList.children[1].textContent).toContain('03:07')
-    })
-
-    test('shows audit trail with new ticket entry in resolved-call state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'resolved-call' }
-      render(state, elements)
-      expect(elements.auditTrail.hidden).toBe(false)
-      expect(elements.auditList.children.length).toBe(1)
-      expect(elements.auditList.children[0].textContent).toContain('03:00')
-      expect(elements.auditList.children[0].textContent).toContain('New ticket from your extension')
-    })
+    expect(els.auditTrail.hidden).toBe(false)
+    expect(els.auditList.children.length).toBe(1)
+    expect(els.auditList.children[0].textContent).toContain('03:07')
+    expect(els.auditList.children[0].textContent).toContain('Pakorn')
+    expect(els.closeButton.disabled).toBe(false)
+    expect(els.callButton.disabled).toBe(false)
+    expect(els.cctvSprite.dataset.mode).toBe('anomaly')
   })
 
-  describe('render - controls', () => {
-    test('enables only inspect button in initial state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'initial' }
-      render(state, elements)
-      expect(elements.inspectButton.disabled).toBe(false)
-      expect(elements.closeButton.disabled).toBe(true)
-      expect(elements.callButton.disabled).toBe(true)
-    })
+  test('renders Case 1 Close outcome with 03:07 clock jump, duplicate rows, and frozen coffee', () => {
+    const els = getElements()
+    const state = closeTicket(inspectAudit(initialState('A. Mercer')))
+    render(state, els)
 
-    test('enables both decision buttons in audit-inspected state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'audit-inspected' }
-      render(state, elements)
-      expect(elements.inspectButton.disabled).toBe(true)
-      expect(elements.closeButton.disabled).toBe(false)
-      expect(elements.callButton.disabled).toBe(false)
-    })
-
-    test('disables all decision buttons in resolved-close state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'resolved-close', firstClosureTimestamp: 123456 }
-      render(state, elements)
-      expect(elements.inspectButton.disabled).toBe(true)
-      expect(elements.closeButton.disabled).toBe(true)
-      expect(elements.callButton.disabled).toBe(true)
-    })
-
-    test('disables all decision buttons in resolved-call state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'resolved-call' }
-      render(state, elements)
-      expect(elements.inspectButton.disabled).toBe(true)
-      expect(elements.closeButton.disabled).toBe(true)
-      expect(elements.callButton.disabled).toBe(true)
-    })
+    expect(els.clock.textContent).toBe('03:07')
+    expect(els.auditList.children.length).toBe(2)
+    expect(els.caseOutcome.hidden).toBe(false)
+    expect(els.caseOutcome.dataset.choice).toBe('comply')
+    expect(els.controls.hidden).toBe(true)
+    expect(els.coffeeSprite.dataset.state).toBe('frozen')
   })
 
-  describe('render - endings', () => {
-    test('hides both endings in initial state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'initial' }
-      render(state, elements)
-      expect(elements.closeEnding.hidden).toBe(true)
-      expect(elements.callEnding.hidden).toBe(true)
-    })
+  test('renders Case 1 Call outcome with phantom INC-0419, ringing phone, and interactive VoIP transcript on answer', () => {
+    const els = getElements()
+    const state = callRequester(inspectAudit(initialState('Pakorn')))
+    render(state, els)
 
-    test('hides both endings in audit-inspected state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'audit-inspected' }
-      render(state, elements)
-      expect(elements.closeEnding.hidden).toBe(true)
-      expect(elements.callEnding.hidden).toBe(true)
-    })
+    expect(els.clock.textContent).toBe('03:00')
+    expect(els.auditList.children.length).toBe(1)
+    expect(els.auditList.children[0].textContent).toContain('New ticket from your extension')
+    expect(els.queueList.children.length).toBe(4)
+    expect(els.queueList.children[3].textContent).toContain('INC-0419')
+    expect(els.phoneSprite.dataset.state).toBe('ringing')
+    expect(els.phoneAnswerButton.hidden).toBe(false)
+    expect(els.voipTranscript.hidden).toBe(true)
 
-    test('shows only close ending in resolved-close state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'resolved-close', firstClosureTimestamp: 123456 }
-      render(state, elements)
-      expect(elements.closeEnding.hidden).toBe(false)
-      expect(elements.callEnding.hidden).toBe(true)
-    })
+    const answered = answerPhone(state)
+    render(answered, els)
+    expect(els.phoneAnswerButton.hidden).toBe(true)
+    expect(els.voipTranscript.hidden).toBe(false)
+    expect(els.voipTranscriptLines.textContent).toContain('Pakorn')
+    expect(els.cctvModalSprite.style.backgroundImage).toContain('./sprites/cctv-workstation.png')
+  })
 
-    test('shows only call ending in resolved-call state', () => {
-      const elements = getElements()
-      const state: GameState = { phase: 'resolved-call' }
-      render(state, elements)
-      expect(elements.closeEnding.hidden).toBe(true)
-      expect(elements.callEnding.hidden).toBe(false)
-    })
+  test('renders Final Shift Dossier with 4-ending gallery and unlocked counter', () => {
+    const els = getElements()
+    let s = initialState('Pakorn')
+    s = advanceCase(resolveCase(inspectAudit(s), 'defy'))
+    s = advanceCase(resolveCase(inspectAudit(s), 'defy'))
+    s = advanceCase(resolveCase(inspectAudit(s), 'defy'))
+
+    render(s, els, ['extension-419'])
+    expect(els.workbench.hidden).toBe(true)
+    expect(els.shiftDossier.hidden).toBe(false)
+    expect(els.dossierTitle.textContent).toBe('Extension 419')
+    expect(els.dossierLedger.children.length).toBe(3)
+    expect(els.dossierGallery.children.length).toBe(4)
+    expect(els.endingsCounter.textContent).toBe('1 / 4 ENDINGS')
+    expect(els.brandLogo.dataset.dread).toBe('3')
+    expect(els.analystBadgeSprite.dataset.dread).toBe('3')
+  })
+
+  test('renderPreferences toggles reduced-motion data attribute and mute state', () => {
+    const els = getElements()
+    renderPreferences({ muted: true, volume: 0.4, reducedMotion: true }, els)
+    expect(document.documentElement.dataset.reducedMotion).toBe('true')
+    expect(els.muteButton.textContent).toBe('Audio: OFF')
+    expect(els.volumeSlider.disabled).toBe(true)
+    expect(els.motionButton.textContent).toBe('Calm: ON')
   })
 })

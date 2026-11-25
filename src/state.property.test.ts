@@ -1,108 +1,105 @@
 /**
- * Property-based tests for state machine
- * Tests universal properties that should hold across all valid inputs
+ * Property-based tests for the 3-case Night Shift state machine.
  */
 import { describe, test } from 'vitest'
 import fc from 'fast-check'
+import { ALL_ENDINGS, CASE_ORDER } from './content'
 import {
-  inspectAudit,
-  closeTicket,
+  advanceCase,
   callRequester,
-  replay
+  closeTicket,
+  computeEndingId,
+  initialState,
+  inspectAudit,
+  replay,
+  replayCase,
+  resolveCase,
+  sanitizeAnalystName,
 } from './state'
+import type { CaseId, ChoiceKey, GameState } from './types'
 
-/**
- * Arbitrary generator for valid game states
- */
-const gameStateArb = fc.oneof(
-  fc.constant({ phase: 'initial' as const }),
-  fc.constant({ phase: 'audit-inspected' as const }),
-  fc.record({
-    phase: fc.constant('resolved-close' as const),
-    firstClosureTimestamp: fc.integer({ min: 0, max: Date.now() })
-  }),
-  fc.constant({ phase: 'resolved-call' as const })
+const caseIdArb = fc.constantFrom<CaseId>(...CASE_ORDER)
+const choiceArb = fc.constantFrom<ChoiceKey>('comply', 'defy')
+const endingArb = fc.constantFrom(...ALL_ENDINGS)
+
+const gameStateArb: fc.Arbitrary<GameState> = fc.oneof(
+  caseIdArb.map((caseId) => ({
+    phase: 'initial' as const,
+    caseId,
+    activeTab: 'report' as const,
+    record: { analystName: 'A. Mercer', choices: {} },
+  })),
+  caseIdArb.map((caseId) => ({
+    phase: 'audit-inspected' as const,
+    caseId,
+    activeTab: 'audit' as const,
+    record: { analystName: 'A. Mercer', choices: {} },
+  })),
+  fc.tuple(caseIdArb, choiceArb).map(([caseId, choice]) => ({
+    phase: 'case-resolved' as const,
+    caseId,
+    choice,
+    activeTab: 'audit' as const,
+    record: { analystName: 'A. Mercer', choices: { [caseId]: choice } },
+  })),
+  endingArb.map((endingId) => ({
+    phase: 'shift-complete' as const,
+    endingId,
+    record: { analystName: 'A. Mercer', choices: {} },
+  })),
 )
 
-describe('Property-Based Tests', () => {
-  describe('Property 1: Invalid State Transitions Preserve State', () => {
-    test('inspectAudit returns referentially equal state when precondition not met', () => {
-      fc.assert(
-        fc.property(gameStateArb, (state) => {
-          // inspectAudit only valid from initial
-          if (state.phase !== 'initial') {
-            const result = inspectAudit(state)
-            // Should return exact same reference
-            return result === state
-          }
-          return true
-        }),
-        { numRuns: 100 }
-      )
-    })
+describe('State Machine Property-Based Tests', () => {
+  test('Property 1: Invalid transitions always preserve exact state reference', () => {
+    fc.assert(
+      fc.property(gameStateArb, (state) => {
+        if (state.phase !== 'initial' && inspectAudit(state) !== state) return false
+        if (state.phase !== 'audit-inspected') {
+          if (closeTicket(state) !== state) return false
+          if (callRequester(state) !== state) return false
+        }
+        if (state.phase !== 'case-resolved') {
+          if (advanceCase(state) !== state) return false
+          if (replayCase(state) !== state) return false
+        }
+        if (state.phase !== 'case-resolved' && state.phase !== 'shift-complete') {
+          if (replay(state) !== state) return false
+        }
+        return true
+      }),
+      { numRuns: 200 },
+    )
+  })
 
-    test('closeTicket returns referentially equal state when precondition not met', () => {
-      fc.assert(
-        fc.property(gameStateArb, (state) => {
-          // closeTicket only valid from audit-inspected
-          if (state.phase !== 'audit-inspected') {
-            const result = closeTicket(state)
-            // Should return exact same reference
-            return result === state
-          }
-          return true
-        }),
-        { numRuns: 100 }
-      )
-    })
+  test('Property 2: Every 3-case path deterministically terminates in a valid EndingId', () => {
+    fc.assert(
+      fc.property(choiceArb, choiceArb, choiceArb, (c1, c2, c3) => {
+        let s = initialState()
+        s = advanceCase(resolveCase(inspectAudit(s), c1))
+        s = advanceCase(resolveCase(inspectAudit(s), c2))
+        s = advanceCase(resolveCase(inspectAudit(s), c3))
 
-    test('callRequester returns referentially equal state when precondition not met', () => {
-      fc.assert(
-        fc.property(gameStateArb, (state) => {
-          // callRequester only valid from audit-inspected
-          if (state.phase !== 'audit-inspected') {
-            const result = callRequester(state)
-            // Should return exact same reference
-            return result === state
-          }
-          return true
-        }),
-        { numRuns: 100 }
-      )
-    })
+        if (s.phase !== 'shift-complete') return false
+        const expected = computeEndingId({ 'case-1': c1, 'case-2': c2, 'case-3': c3 })
+        return s.endingId === expected && ALL_ENDINGS.includes(s.endingId)
+      }),
+      { numRuns: 100 },
+    )
+  })
 
-    test('replay returns referentially equal state when precondition not met', () => {
-      fc.assert(
-        fc.property(gameStateArb, (state) => {
-          // replay only valid from resolved-close or resolved-call
-          if (state.phase !== 'resolved-close' && state.phase !== 'resolved-call') {
-            const result = replay(state)
-            // Should return exact same reference
-            return result === state
-          }
-          return true
-        }),
-        { numRuns: 100 }
-      )
-    })
-
-    test('all transitions preserve state when invalid', () => {
-      fc.assert(
-        fc.property(gameStateArb, (state) => {
-          const transitions = [inspectAudit, closeTicket, callRequester, replay]
-          
-          // For each transition, if it's invalid for this state, it should return same reference
-          return transitions.every(transition => {
-            const result = transition(state)
-            // If result phase matches input phase, should be same reference
-            if (result.phase === state.phase) {
-              return result === state
-            }
-            return true
-          })
-        }),
-        { numRuns: 100 }
-      )
-    })
+  test('Property 3: sanitizeAnalystName always returns non-empty safe handle <= 24 chars', () => {
+    fc.assert(
+      fc.property(fc.string({ maxLength: 60 }), (raw) => {
+        const clean = sanitizeAnalystName(raw)
+        return (
+          clean.length >= 1 &&
+          clean.length <= 24 &&
+          !clean.includes('<') &&
+          !clean.includes('>') &&
+          !clean.includes('\n')
+        )
+      }),
+      { numRuns: 200 },
+    )
   })
 })
