@@ -37,22 +37,22 @@ Instead of bolting Halloween cobwebs onto a generic dashboard, **the corporate i
 
 ---
 
-## Recorded Demo Video (`2m 51s`, Strictly Under 3 Minutes)
+## Recorded Demo Video (`2m 16s`, Strictly Under 3 Minutes)
 
 Local deliverables ready for YouTube Studio upload (in gitignored `demo/` folder):
-- **Subtitled HD Video (`1280×720` @ 30fps, H.264 + AAC stereo)**: `demo/night-shift-help-desk-kiroween-demo.mp4`
-- **Synced YouTube Captions**: `demo/night-shift-help-desk-kiroween-demo.srt`
+- **Subtitled HD Video (`1280×720` @ 30fps, H.264 + AAC stereo, Google Cloud Chirp 3 HD narration)**: `demo/night-shift-help-desk-kiroween-demo.mp4`
+- **Synced YouTube Captions (43 cues)**: `demo/night-shift-help-desk-kiroween-demo.srt`
 - **Custom 16:9 Thumbnail**: `demo/youtube-thumbnail.png`
 
-### Video Timeline (`0:00 – 2:51`)
-- **0:00–0:14 — Opening Card**: Phosphor-Noir title card showcasing Halcyon emblem and all three animated Piskel CCTV cameras.
-- **0:14–0:26 — Night Shift Check-In**: Personalize analyst handle (`Pakorn`) and clock in at `03:00` on the live GitHub Pages deployment.
-- **0:26–0:58 — Case 1 Audit Trail & 6× CCTV Zoom**: Reveal impossible `03:07` closure signed by `Pakorn`, then open `CAM-B3-204` at 6× forensic zoom to inspect the self-powered CRT reflection.
-- **0:58–1:28 — Both Case 1 Paths & VoIP Loopback**: Demonstrate *Close as Resolved* (`03:07` clock jump + duplicate rows + frozen coffee), then replay and pick *Keep Open & Call Requester* (phantom `INC-0419` + clicking **Answer Ext. 419** for the loopback transcript).
-- **1:28–2:05 — Escalation (Case 2 & Case 3)**: `INC-0314` empty North Stairwell badge override + 6× CCTV zoom, followed by `INC-0321` Shift Handover pre-dated at `02:55` with Desk B-04 overhead camera showing the operator in your chair.
-- **2:05–2:20 — Ending Dossier & Accessibility**: Unlock *Ending II: Extension 419*, demonstrate **Copy Shift Report** and **Calm Mode**.
-- **2:20–2:34 — `360px` Mobile-First Showcase**: Live `360px` viewport playback proving zero clipping and ticket-first ordering.
-- **2:34–2:51 — Under the Hood (Kiro + Piskel MCP)**: Summary of `.kiro/` specs/steering/hooks, Piskel MCP sprites, 35 automated tests on Linux CI, and live URLs.
+### Video Timeline (`0:00 – 2:16`)
+- **0:00–0:12 — Opening Card**: Phosphor-Noir title card showcasing Halcyon emblem and all three animated Piskel CCTV cameras.
+- **0:12–0:22 — Night Shift Check-In**: Personalize analyst handle (`Pakorn`) and clock in at `03:00` on the live GitHub Pages deployment.
+- **0:22–0:51 — Case 1 Audit Trail & 6× CCTV Zoom**: Reveal impossible `03:07` closure signed by `Pakorn`, then open `CAM-B3-204` at 6× forensic zoom to inspect the self-powered CRT reflection.
+- **0:51–1:14 — Both Case 1 Paths & VoIP Loopback**: Demonstrate *Close as Resolved* (`03:07` clock jump + duplicate rows + frozen coffee), then replay and pick *Keep Open & Call Requester* (phantom `INC-0419` + clicking **Answer Ext. 419** for the loopback transcript).
+- **1:14–1:44 — Escalation (Case 2 & Case 3)**: `INC-0314` empty North Stairwell badge override + 6× CCTV zoom, followed by `INC-0321` Shift Handover pre-dated at `02:55` with Desk B-04 overhead camera showing the operator in your chair.
+- **1:44–1:59 — Ending Dossier & Accessibility**: Unlock *Ending II: Extension 419*, demonstrate **Copy Shift Report** and **Calm Mode**.
+- **1:59–2:10 — `360px` Mobile-First Showcase**: Live `360px` viewport playback proving zero clipping and ticket-first ordering.
+- **2:10–2:16 — Under the Hood (Kiro + Piskel MCP)**: Summary of `.kiro/` specs/steering/hooks, Piskel MCP sprites, 35 automated tests on Linux CI, and live URLs.
 
 ### Ready-to-Paste YouTube Metadata
 - **Title**: `Night Shift Help Desk — Kiroween 2026 Costume Contest Demo (Halcyon Desk v4.2)`
@@ -75,6 +75,6 @@ Local deliverables ready for YouTube Studio upload (in gitignored `demo/` folder
 - [x] Review changes locally and commit to Git (`.kiro/` specs/steering/hooks and `LICENSE` tracked).
 - [x] Create a **public GitHub repository** (`https://github.com/pakorn269/night-shift-help-desk`) and push — confirmed **MIT License** detected by GitHub API and repo visibility `public`.
 - [x] Run locked Linux CI (`npm ci && npm test && npm run build`) and deploy `dist/` automatically to **GitHub Pages** (`https://pakorn269.github.io/night-shift-help-desk/`), verified end-to-end in live browser with HTTP `200` on all sprites and `0` console errors.
-- [x] Record `<3 min` subtitled HD demo video (`2m 51s`), synced `.srt` captions, and `1280×720` thumbnail locally in `demo/`.
+- [x] Record `<3 min` subtitled HD demo video (`2m 16s`, Google Cloud Chirp 3 HD voiceover), synced `.srt` captions, and `1280×720` thumbnail locally in `demo/`.
 - [ ] Upload `demo/night-shift-help-desk-kiroween-demo.mp4` (plus `youtube-thumbnail.png` and `.srt`) to YouTube as **Public**.
 - [ ] Submit repo URL, live app URL, YouTube video URL, and Costume Contest write-up on [kiroween.devpost.com](https://kiroween.devpost.com/).
