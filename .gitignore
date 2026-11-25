@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 .piskel-mcp/
+demo/
+__pycache__/
 
 # Editor directories and files
 .vscode/*
